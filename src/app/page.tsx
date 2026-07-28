@@ -1,65 +1,146 @@
-import Image from "next/image";
+import Link from "next/link";
+import Header from "@/components/Header";
+import { starters } from "@/content/starters";
+import { siteCopy } from "@/content/copy";
+import { getLandscape } from "@/lib/db";
+import { ensureSeeded } from "@/lib/seed";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function LandingPage() {
+  await ensureSeeded();
+  const landscape = await getLandscape();
+  const sorted = [...starters].sort((a, b) => a.sortOrder - b.sortOrder);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <>
+      <Header />
+      <main className="flex-1">
+        {/* Hero */}
+        <section className="border-b border-line">
+          <div className="mx-auto max-w-6xl px-5 py-20 sm:py-28">
+            <p className="mb-5 text-xs font-medium uppercase tracking-[0.14em] text-muted">
+              {siteCopy.hero.kicker}
+            </p>
+            <h1 className="max-w-4xl font-display text-5xl leading-[1.05] text-ink sm:text-7xl">
+              {siteCopy.hero.headline}
+            </h1>
+            <p className="mt-6 max-w-2xl text-base leading-relaxed text-ink-soft">
+              {siteCopy.hero.paragraph}
+            </p>
+            <div className="mt-9 flex flex-wrap gap-3">
+              <Link
+                href="/#starters"
+                className="rounded-full bg-ink px-6 py-3 text-sm font-medium text-paper hover:bg-ink/85"
+              >
+                {siteCopy.hero.primaryCta}
+              </Link>
+              <Link
+                href="/landscape"
+                className="rounded-full border border-line px-6 py-3 text-sm font-medium text-ink hover:border-ink/40"
+              >
+                {siteCopy.hero.secondaryCta}
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* Sentence starters — the core interaction, huge and up front */}
+        <section id="starters" className="scroll-mt-20 border-b border-line">
+          <div className="mx-auto max-w-6xl px-5 py-16 sm:py-20">
+            <h2 className="font-display text-2xl text-ink">
+              {siteCopy.starters.heading}
+            </h2>
+            <p className="mt-3 text-sm text-ink-soft">{siteCopy.starters.intro}</p>
+            <div className="mt-10 divide-y divide-line border-t border-b border-line">
+              {sorted.map((starter) => (
+                <Link
+                  key={starter.id}
+                  href={`/contribute/${starter.id}`}
+                  className="group flex items-center justify-between gap-6 py-8 transition-colors hover:bg-paper-2/60 sm:py-10"
+                >
+                  <span className="max-w-4xl font-display text-2xl leading-snug text-ink sm:text-4xl">
+                    {starter.text}
+                  </span>
+                  <span
+                    aria-hidden
+                    className="shrink-0 text-2xl text-muted transition-transform group-hover:translate-x-1 group-hover:text-ink sm:text-3xl"
+                  >
+                    →
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Landscape preview */}
+        <section className="border-b border-line">
+          <div className="mx-auto max-w-6xl px-5 py-16">
+            <div className="flex flex-wrap items-baseline justify-between gap-3">
+              <h2 className="font-display text-2xl text-ink">
+                {siteCopy.landscapePreview.heading}
+              </h2>
+              <p className="text-sm text-muted">
+                {landscape.totalVoices} voices · {landscape.topics.length} topics ·{" "}
+                {landscape.topics.reduce((s, t) => s + t.tensions.length, 0)} tensions
+              </p>
+            </div>
+            <ul className="mt-8 grid gap-3 sm:grid-cols-2">
+              {landscape.topics.map((topic) => (
+                <li
+                  key={topic.id}
+                  className="flex items-baseline justify-between gap-4 rounded-[12px] border border-line p-5"
+                >
+                  <h3 className="font-display text-base text-ink">{topic.label}</h3>
+                  <span className="shrink-0 text-xs text-muted">
+                    {topic.voiceCount} {topic.voiceCount === 1 ? "voice" : "voices"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <Link
+              href="/landscape"
+              className="mt-8 inline-block rounded-full border border-line px-6 py-3 text-sm font-medium text-ink hover:border-ink/40"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+              {siteCopy.landscapePreview.cta}
+            </Link>
+          </div>
+        </section>
+
+        {/* Closing invitation */}
+        <section>
+          <div className="mx-auto max-w-6xl px-5 py-20 text-center">
+            <h2 className="mx-auto max-w-2xl font-display text-2xl text-ink sm:text-3xl">
+              {siteCopy.closing.heading}
+            </h2>
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+              <Link
+                href="/#starters"
+                className="rounded-full bg-ink px-6 py-3 text-sm font-medium text-paper hover:bg-ink/85"
+              >
+                {siteCopy.closing.primaryCta}
+              </Link>
+              <Link
+                href="/landscape"
+                className="rounded-full border border-line px-6 py-3 text-sm font-medium text-ink hover:border-ink/40"
+              >
+                {siteCopy.closing.secondaryCta}
+              </Link>
+            </div>
+            <p className="mt-6 text-xs text-muted">{siteCopy.closing.note}</p>
+          </div>
+        </section>
       </main>
-    </div>
+
+      <footer className="border-t border-line">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-5 py-8 text-xs text-muted sm:flex-row">
+          <span>
+            {siteCopy.projectTitle} — {siteCopy.projectSubtitle}
+          </span>
+          <span>An emerging point of view. Working draft.</span>
+        </div>
+      </footer>
+    </>
   );
 }
