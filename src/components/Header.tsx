@@ -19,7 +19,7 @@ export default function Header() {
   const logo = findLogo();
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-paper">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3">
+      <div className="mx-auto flex max-w-6xl items-center px-5 py-3">
         <Link href="/" className="flex items-center gap-3">
           {logo ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -34,26 +34,6 @@ export default function Header() {
             {siteCopy.projectTitle}
           </span>
         </Link>
-        <nav className="flex items-center gap-1 sm:gap-2">
-          <Link
-            href="/#starters"
-            className="rounded-full px-3 py-1.5 text-sm font-medium text-ink-soft transition-colors hover:bg-paper-2 hover:text-ink"
-          >
-            Share your view
-          </Link>
-          <Link
-            href="/landscape"
-            className="rounded-full px-3 py-1.5 text-sm font-medium text-ink-soft transition-colors hover:bg-paper-2 hover:text-ink"
-          >
-            The landscape
-          </Link>
-          <Link
-            href="/about"
-            className="hidden rounded-full px-3 py-1.5 text-sm font-medium text-ink-soft transition-colors hover:bg-paper-2 hover:text-ink sm:inline-block"
-          >
-            About
-          </Link>
-        </nav>
       </div>
     </header>
   );
