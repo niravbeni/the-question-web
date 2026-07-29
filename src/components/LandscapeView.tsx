@@ -144,7 +144,7 @@ export default function LandscapeView({
                 inert={i !== index}
                 aria-hidden={i !== index}
                 className={
-                  "flex h-full w-full shrink-0 flex-col overflow-y-auto transition-opacity duration-500 " +
+                  "flex h-full w-full shrink-0 flex-col overflow-hidden transition-opacity duration-500 " +
                   (i === index ? "opacity-100" : "opacity-0")
                 }
               >
