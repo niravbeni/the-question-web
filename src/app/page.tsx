@@ -42,7 +42,7 @@ export default async function LandingPage() {
           </div>
         </section>
 
-        {/* Sentence starters — the core interaction, huge and up front */}
+        {/* Sentence starters: the core interaction, huge and up front */}
         <section id="starters" className="scroll-mt-20 border-b border-line">
           <div className="mx-auto max-w-6xl px-5 py-16 sm:py-20">
             <h2 className="font-display text-2xl text-ink">
@@ -124,7 +124,7 @@ export default async function LandingPage() {
       <footer className="border-t border-line">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-5 py-8 text-xs text-muted sm:flex-row">
           <span>
-            {siteCopy.projectTitle} — {siteCopy.projectSubtitle}
+            {siteCopy.projectTitle} · {siteCopy.projectSubtitle}
           </span>
           <span>An emerging point of view. Working draft.</span>
         </div>

@@ -29,7 +29,7 @@ const NO_FIT = 0.3;
 const DRIFT_TRIGGER = 3;
 
 /** Shared framing so every analysis call works from the same ground rules. */
-const ANALYST_ROLE = `You are the analysis engine for "Women's Health × AI", a public IDEO project mapping where people genuinely stand. You work only from what people actually said. You never invent positions, never sand disagreements down into consensus, and never force views into categories they do not fit.`;
+const ANALYST_ROLE = `You are the analysis engine for "Women's Health × AI", a public IDEO project mapping where people genuinely stand. You work only from what people actually said. You never invent positions, never sand disagreements down into consensus, and never force views into categories they do not fit. Never use em dashes or en dashes in any labels, summaries, questions, or poles you write; use commas, periods, colons, or hyphens instead.`;
 
 /* ------------------------------------------------------------------ */
 /* Immediate placement: slot one new pov into the existing landscape.  */
@@ -67,7 +67,7 @@ export async function placeNewPov(pov: Pov): Promise<PlacementResult> {
             `    tension ${j}: "${tn.poleA}" (score -1) <-> "${tn.poleB}" (score 1). At stake: ${tn.question}`,
         )
         .join("\n");
-      return `topic ${i}: ${topic.label} — ${topic.summary}\n${tensionLines}`;
+      return `topic ${i}: ${topic.label}: ${topic.summary}\n${tensionLines}`;
     })
     .join("\n");
 
@@ -84,7 +84,7 @@ Original words: ${pov.rawInput}
 
 Steps:
 1. Choose the single topic whose SUBJECT this view is about. Match on subject and the decision at stake, not on tone.
-2. Rate "fit" from 0 to 1: 1 means the topic clearly covers this view; below 0.3 means no listed topic covers it. Do not force a bad match — if nothing fits, say so with topic_index -1 and the view will wait for the next recalibration.
+2. Rate "fit" from 0 to 1: 1 means the topic clearly covers this view; below 0.3 means no listed topic covers it. Do not force a bad match: if nothing fits, say so with topic_index -1 and the view will wait for the next recalibration.
 3. Score the view on EACH of the chosen topic's tensions, based only on what it says:
    - -1.0 to -0.7 / 0.7 to 1.0: clearly committed to that pole.
    - -0.6 to -0.3 / 0.3 to 0.6: leans that way with reservations.
@@ -246,8 +246,8 @@ export async function recalibrate(): Promise<RecalibrationSummary> {
 
 /**
  * Fire-and-forget recalibration on two signals:
- * 1. Volume — enough new voices have accumulated since the last run.
- * 2. Drift — several new voices fit the current topics poorly (or not at all),
+ * 1. Volume: enough new voices have accumulated since the last run.
+ * 2. Drift: several new voices fit the current topics poorly (or not at all),
  *    meaning the conversation is leaning somewhere the landscape doesn't cover.
  */
 export async function maybeAutoRecalibrate(): Promise<void> {
@@ -280,9 +280,9 @@ Group these anonymous points of view into topics.
 ${list}
 
 Rules:
-- Group by SUBJECT — what the view is about and the decision at stake — not by tone, strength of feeling, or whether it is optimistic about AI.
+- Group by SUBJECT: what the view is about and the decision at stake: not by tone, strength of feeling, or whether it is optimistic about AI.
 - Let the groups emerge from these views as they are today. Do not reach for standard categories; if several views converge on a subject that was not prominent before, that is a real group and deserves to be one. The whole point of regrouping is to notice when the conversation has moved.
-- Each group must share a genuinely common subject (e.g. who controls body data, whose symptoms models learn, what stays human in care) — never a catch-all like "AI in health".
+- Each group must share a genuinely common subject (e.g. who controls body data, whose symptoms models learn, what stays human in care): never a catch-all like "AI in health".
 - Form ${Math.max(3, target - 1)} to ${Math.min(6, target + 1)} groups. Prefer groups of at least 3 views. Only leave a view alone if it truly fits nowhere.
 - Every index from 0 to ${povs.length - 1} must appear in exactly one group.
 
@@ -330,14 +330,14 @@ ${list}
 
 Derive from them:
 
-1. "label": a topic name of at most 5 words. Plain language, concrete, specific to this cluster — never generic ("AI in healthcare") and never alarmist.
+1. "label": a topic name of at most 5 words. Plain language, concrete, specific to this cluster: never generic ("AI in healthcare") and never alarmist.
 
 2. "summary": one sentence naming the shared subject AND the live disagreement inside it.
 
-3. "tensions": 2 or 3 creative tensions — the axes these views ACTUALLY divide along. For each:
-   - "pole_a" and "pole_b": short phrases (max 6 words), each a position that at least one of these views genuinely holds or clearly leans toward. Both poles must have real merit — never a reasonable position versus a strawman, and never generic axes like optimism vs pessimism or pro-AI vs anti-AI. Find the specific trade-off: what would one group protect that the other would spend?
+3. "tensions": 2 or 3 creative tensions: the axes these views ACTUALLY divide along. For each:
+   - "pole_a" and "pole_b": short phrases (max 6 words), each a position that at least one of these views genuinely holds or clearly leans toward. Both poles must have real merit: never a reasonable position versus a strawman, and never generic axes like optimism vs pessimism or pro-AI vs anti-AI. Find the specific trade-off: what would one group protect that the other would spend?
    - "question": one sentence naming what is truly at stake between the poles.
-   A reader should be able to point at specific views above that sit near each pole. If you cannot, the tension is invented — drop it.
+   A reader should be able to point at specific views above that sit near each pole. If you cannot, the tension is invented: drop it.
 
 If these views mostly agree, return fewer tensions (even just one) rather than manufacturing disagreement.
 
@@ -374,11 +374,11 @@ ${tensionLines}
 POINTS OF VIEW
 ${list}
 
-Scoring rubric — base every score only on what the view itself says, never on what similar views usually think:
+Scoring rubric: base every score only on what the view itself says, never on what similar views usually think:
 - -1.0 to -0.7 / 0.7 to 1.0: clearly committed to that pole.
 - -0.6 to -0.3 / 0.3 to 0.6: leans that way with reservations or conditions.
 - -0.2 to 0.2: explicitly torn, argues both sides, or the tension does not apply to this view.
-If a view takes any side at all, score it off-center. Differentiate the views — a flat row of zeros means you have not read them.
+If a view takes any side at all, score it off-center. Differentiate the views: a flat row of zeros means you have not read them.
 
 Respond with JSON only: {"positions": [{"index": <view index>, "scores": [<one float per tension, in order>]}]} covering every view exactly once.`;
 

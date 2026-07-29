@@ -87,7 +87,7 @@ async function ensureSchema(): Promise<void> {
   return schemaReady;
 }
 
-/** Schema-ensured client — every public function goes through this. */
+/** Schema-ensured client: every public function goes through this. */
 async function db(): Promise<postgres.Sql> {
   await ensureSchema();
   return getSql();
@@ -197,7 +197,7 @@ export async function countPovs(): Promise<number> {
   return Number(rows[0].n);
 }
 
-/** Povs with parsed embeddings — used by the recalibration pipeline. */
+/** Povs with parsed embeddings: used by the recalibration pipeline. */
 export async function getPovsWithEmbeddings(): Promise<
   Array<Pov & { embedding: number[] | null }>
 > {

@@ -54,7 +54,7 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Tailwind v4 resets buttons to cursor: default — restore the pointer. */
+/* Tailwind v4 resets buttons to cursor: default: restore the pointer. */
 :where(button, [role="button"], input[type="submit"], label[for], select, summary):not(:disabled) {
   cursor: pointer;
 }

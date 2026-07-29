@@ -11,7 +11,7 @@ export const starters: SentenceStarter[] = [
     id: "worries-me",
     text: "What worries me most about AI in women's health is…",
     shortLabel: "What worries me",
-    hint: "Name the risk you actually think about — not the one in headlines.",
+    hint: "Name the risk you actually think about, not the one in headlines.",
     placeholder:
       "…that the systems will be trained on everyone except the people they claim to help. I've seen…",
     sortOrder: 1,

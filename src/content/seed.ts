@@ -36,7 +36,7 @@ export const seedTopics: SeedTopic[] = [
     id: "t-trust",
     label: "Trust and accountability",
     summary:
-      "Whether AI in women's health should earn trust before deployment or build it through use — and who answers when it fails.",
+      "Whether AI in women's health should earn trust before deployment or build it through use: and who answers when it fails.",
     sortOrder: 1,
     tensions: [
       {
@@ -61,7 +61,7 @@ export const seedTopics: SeedTopic[] = [
     id: "t-bias",
     label: "Whose bodies are seen",
     summary:
-      "Models learn from the patients medicine already saw clearly — and inherit every body it overlooked. Where should the repair happen?",
+      "Models learn from the patients medicine already saw clearly: and inherit every body it overlooked. Where should the repair happen?",
     sortOrder: 2,
     tensions: [
       {
@@ -86,7 +86,7 @@ export const seedTopics: SeedTopic[] = [
     id: "t-care",
     label: "The human side of care",
     summary:
-      "What AI should be allowed to do in the caring relationship itself — extend clinicians, replace front doors, or stay out of the room.",
+      "What AI should be allowed to do in the caring relationship itself: extend clinicians, replace front doors, or stay out of the room.",
     sortOrder: 3,
     tensions: [
       {
@@ -142,7 +142,7 @@ export const seedPovs: SeedPov[] = [
     rawInput:
       "…that we will be asked to trust these systems before anyone is required to stand behind them. When a model gets a woman's case wrong, there is no one to call.",
     summary:
-      "Believes no AI should reach patients until a named institution is legally answerable for its mistakes — trust must be earned through accountability, not requested up front.",
+      "Believes no AI should reach patients until a named institution is legally answerable for its mistakes: trust must be earned through accountability, not requested up front.",
     topicId: "t-trust",
     scores: { "tn-trust-proof": -0.9, "tn-trust-control": 0.7 },
   },
@@ -162,7 +162,7 @@ export const seedPovs: SeedPov[] = [
     rawInput:
       "…the audit trail. I work in health tech and I have never seen a women's health model whose failure modes were published anywhere a patient could read.",
     summary:
-      "Wants mandatory public failure reporting for health AI — deployment is acceptable only when every error a system makes is visible outside the company that built it.",
+      "Wants mandatory public failure reporting for health AI: deployment is acceptable only when every error a system makes is visible outside the company that built it.",
     topicId: "t-trust",
     scores: { "tn-trust-proof": -0.35, "tn-trust-control": 0.9 },
   },
@@ -192,7 +192,7 @@ export const seedPovs: SeedPov[] = [
     rawInput:
       "…the apology. When the system fails a woman, a human being should have to look her in the eye and explain what went wrong and what changes.",
     summary:
-      "Holds that accountability must stay human: when AI fails a patient, a person should explain the failure face to face — systems can assist care but never absorb responsibility.",
+      "Holds that accountability must stay human: when AI fails a patient, a person should explain the failure face to face: systems can assist care but never absorb responsibility.",
     topicId: "t-trust",
     scores: { "tn-trust-proof": -0.6, "tn-trust-control": 0.4 },
   },
@@ -204,7 +204,7 @@ export const seedPovs: SeedPov[] = [
     rawInput:
       "…Black women, whose pain is already discounted by clinicians. A model trained on those charts learns the discounting as if it were medicine.",
     summary:
-      "Warns that models trained on clinical records inherit the dismissal already written into them — for Black women especially, biased data is downstream of biased care, so the institutions must change first.",
+      "Warns that models trained on clinical records inherit the dismissal already written into them: for Black women especially, biased data is downstream of biased care, so the institutions must change first.",
     topicId: "t-bias",
     scores: { "tn-bias-where": 0.9, "tn-bias-scope": -0.3 },
   },
@@ -224,7 +224,7 @@ export const seedPovs: SeedPov[] = [
     rawInput:
       "…anyone whose condition doesn't fit the textbook: endometriosis, PCOS, perimenopause. Medicine never studied them properly, so what exactly would the AI learn from?",
     summary:
-      "Points out that for under-studied conditions like endometriosis and perimenopause there is no good data to fix — AI built on absent science can only automate the ignorance.",
+      "Points out that for under-studied conditions like endometriosis and perimenopause there is no good data to fix: AI built on absent science can only automate the ignorance.",
     topicId: "t-bias",
     scores: { "tn-bias-where": 0.5, "tn-bias-scope": -0.75 },
   },
@@ -234,7 +234,7 @@ export const seedPovs: SeedPov[] = [
     rawInput:
       "…dedicated models for female physiology. We accepted sex-specific reference ranges in labs; we should demand sex-specific models everywhere it matters.",
     summary:
-      "Wants purpose-built models for female physiology, on the same logic as sex-specific lab reference ranges — a general model tuned on male-default data cannot simply be patched.",
+      "Wants purpose-built models for female physiology, on the same logic as sex-specific lab reference ranges: a general model tuned on male-default data cannot simply be patched.",
     topicId: "t-bias",
     scores: { "tn-bias-where": -0.4, "tn-bias-scope": -0.95 },
   },
@@ -244,7 +244,7 @@ export const seedPovs: SeedPov[] = [
     rawInput:
       "…a separate 'women's track' that gets a fraction of the funding and none of the scrutiny. Separate has never meant equal in medicine.",
     summary:
-      "Fears women-specific AI becomes a underfunded side track — 'separate but equal' has a bad record in medicine, so the mainstream systems must be forced to see women properly.",
+      "Fears women-specific AI becomes a underfunded side track: 'separate but equal' has a bad record in medicine, so the mainstream systems must be forced to see women properly.",
     topicId: "t-bias",
     scores: { "tn-bias-where": 0.3, "tn-bias-scope": 0.9 },
   },
@@ -254,7 +254,7 @@ export const seedPovs: SeedPov[] = [
     rawInput:
       "…women who never show up in the data at all: uninsured, undocumented, or treated in systems that keep paper records. You cannot debias an absence.",
     summary:
-      "Notes that the most overlooked women generate no data at all — uninsured, undocumented, or outside digital systems — so every fix that starts from existing records starts too late.",
+      "Notes that the most overlooked women generate no data at all: uninsured, undocumented, or outside digital systems: so every fix that starts from existing records starts too late.",
     topicId: "t-bias",
     scores: { "tn-bias-where": 0.7, "tn-bias-scope": 0.4 },
   },
@@ -266,7 +266,7 @@ export const seedPovs: SeedPov[] = [
     rawInput:
       "…the first conversation after a frightening result. I'm an oncology nurse; the pause before a patient asks their real question is where care actually happens.",
     summary:
-      "An experienced nurse's view: AI belongs in the paperwork, never in the pause after bad news — the unhurried human moment is the treatment, and no schedule optimization should touch it.",
+      "An experienced nurse's view: AI belongs in the paperwork, never in the pause after bad news: the unhurried human moment is the treatment, and no schedule optimization should touch it.",
     topicId: "t-care",
     scores: { "tn-care-role": -0.85, "tn-care-value": 0.95 },
   },
@@ -286,7 +286,7 @@ export const seedPovs: SeedPov[] = [
     rawInput:
       "…two-tier care. The insured get the human; everyone else gets the chatbot and is told it's innovation.",
     summary:
-      "Fears automation splits care into tiers — humans for those who can pay, chatbots framed as innovation for everyone else — and insists efficiency gains be spent on access, not margins.",
+      "Fears automation splits care into tiers: humans for those who can pay, chatbots framed as innovation for everyone else: and insists efficiency gains be spent on access, not margins.",
     topicId: "t-care",
     scores: { "tn-care-role": 0.2, "tn-care-value": 0.7 },
   },
@@ -306,7 +306,7 @@ export const seedPovs: SeedPov[] = [
     rawInput:
       "…nothing, honestly, if the system is better at it. Sentiment about 'the human touch' has excused a lot of rushed, dismissive appointments.",
     summary:
-      "Takes the contrarian line: nothing is sacred if the machine performs better — 'the human touch' has long excused rushed, dismissive care, and patients deserve outcomes over ritual.",
+      "Takes the contrarian line: nothing is sacred if the machine performs better: 'the human touch' has long excused rushed, dismissive care, and patients deserve outcomes over ritual.",
     topicId: "t-care",
     scores: { "tn-care-role": 0.6, "tn-care-value": -0.9 },
   },
@@ -314,7 +314,7 @@ export const seedPovs: SeedPov[] = [
     id: "seed-care-6",
     starterId: "overlooked",
     rawInput:
-      "…new mothers. Postpartum checklists get automated while the actual question — how are you, really? — needs a person who knows your name.",
+      "…new mothers. Postpartum checklists get automated while the actual question: how are you, really?: needs a person who knows your name.",
     summary:
       "Sees postpartum care as the test case: automate the checklists if you must, but 'how are you, really?' only works from a person who knows your name and notices your answer.",
     topicId: "t-care",
@@ -328,7 +328,7 @@ export const seedPovs: SeedPov[] = [
     rawInput:
       "…that it should be treated like medical evidence, not marketing exhaust. My cycle data can reveal a pregnancy before I've told anyone. That deserves legal privilege.",
     summary:
-      "Wants reproductive data treated like privileged medical evidence, not marketing exhaust — cycle data can reveal a pregnancy before a partner knows, and the law should treat it that way.",
+      "Wants reproductive data treated like privileged medical evidence, not marketing exhaust: cycle data can reveal a pregnancy before a partner knows, and the law should treat it that way.",
     topicId: "t-body",
     scores: { "tn-body-share": 0.85, "tn-body-price": 0.9 },
   },
@@ -348,7 +348,7 @@ export const seedPovs: SeedPov[] = [
     rawInput:
       "…subpoenas. In some states, a period-tracking app is discovery material. The threat isn't hypothetical anymore.",
     summary:
-      "Points to the legal reality that period-tracking data is already discovery material in some jurisdictions — under those conditions, guarding by default is not paranoia but prudence.",
+      "Points to the legal reality that period-tracking data is already discovery material in some jurisdictions: under those conditions, guarding by default is not paranoia but prudence.",
     topicId: "t-body",
     scores: { "tn-body-share": 0.95, "tn-body-price": 0.75 },
   },
@@ -366,9 +366,9 @@ export const seedPovs: SeedPov[] = [
     id: "seed-body-5",
     starterId: "hope-it-fixes",
     rawInput:
-      "…federated research — models that learn across millions of women while raw data never leaves the device. We shouldn't have to pick between science and safety.",
+      "…federated research: models that learn across millions of women while raw data never leaves the device. We shouldn't have to pick between science and safety.",
     summary:
-      "Rejects the framing entirely: federated learning lets models learn from millions of women while raw data never leaves the device — the science-versus-safety trade is an engineering failure, not a law of nature.",
+      "Rejects the framing entirely: federated learning lets models learn from millions of women while raw data never leaves the device: the science-versus-safety trade is an engineering failure, not a law of nature.",
     topicId: "t-body",
     scores: { "tn-body-share": -0.1, "tn-body-price": 0.3 },
   },
@@ -378,7 +378,7 @@ export const seedPovs: SeedPov[] = [
     rawInput:
       "…teenagers. They're handing lifetime baseline data about their bodies to companies before they can legally sign a contract, and nobody has explained the stakes.",
     summary:
-      "Worries most about teenagers, who hand over lifetime baselines of body data before they can legally sign a contract — autonomy means nothing if the terms were set at fifteen.",
+      "Worries most about teenagers, who hand over lifetime baselines of body data before they can legally sign a contract: autonomy means nothing if the terms were set at fifteen.",
     topicId: "t-body",
     scores: { "tn-body-share": 0.55, "tn-body-price": 0.6 },
   },

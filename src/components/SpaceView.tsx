@@ -48,7 +48,7 @@ function hash01(id: string): number {
 interface PoleLink {
   pos: [number, number, number];
   label: string;
-  /** 0..1 — how strongly this voice leans toward this pole. */
+  /** 0..1: how strongly this voice leans toward this pole. */
   weight: number;
 }
 
@@ -206,7 +206,7 @@ function buildLayout(landscape: Landscape): SpaceLayout {
 
 /**
  * Keeps frames flowing even when the host throttles requestAnimationFrame
- * (embedded browsers) — the lesson learned from the first 3D map.
+ * (embedded browsers): the lesson learned from the first 3D map.
  */
 function DriveFrames() {
   const advance = useThree((s) => s.advance);
@@ -231,7 +231,7 @@ function DriveFrames() {
 }
 
 /**
- * Text as a 2D canvas texture on a sprite — avoids SDF-text WebGL issues.
+ * Text as a 2D canvas texture on a sprite: avoids SDF-text WebGL issues.
  * Optionally drawn on a light backing plate; labels with `alwaysOnTop` skip
  * the depth test so they stay readable in front of geometry.
  */
@@ -330,7 +330,7 @@ function SegmentLines({
   );
 }
 
-/** Wall color — tinted enough that the white grid clearly reads. */
+/** Wall color: tinted enough that the white grid clearly reads. */
 const WALL_COLOR = "#d5dbee";
 const GRID_LINE = "rgba(255, 255, 255, 0.95)";
 
@@ -368,8 +368,7 @@ function makeWallTexture(wUnits: number, hUnits: number): THREE.CanvasTexture {
 
 /**
  * The plot cube: six gridded walls whose normals face inward, so the walls
- * behind the data show and the walls between you and the data are culled —
- * the classic 3D scatter-plot cube. Numeric ticks run along the edges.
+ * behind the data show and the walls between you and the data are culled: * the classic 3D scatter-plot cube. Numeric ticks run along the edges.
  */
 function PlotBox() {
   const textures = useMemo(
@@ -539,7 +538,7 @@ export default function SpaceView({
             </group>
           ))}
 
-          {/* Tension pole markers — diamonds, so they never read as voices */}
+          {/* Tension pole markers: diamonds, so they never read as voices */}
           {layout.poles.map((pole) => (
             <group key={pole.id}>
               <mesh position={pole.pos}>
@@ -656,7 +655,7 @@ export default function SpaceView({
                 <span className="block h-2 w-2 rounded-full bg-[#3a4152]/60" />
               </span>
               <span className="text-[10px] leading-snug text-[#3a4152]">
-                One voice — closer to the end it leans toward
+                One voice, closer to the end it leans toward
               </span>
             </div>
           </div>

@@ -2,7 +2,7 @@ import OpenAI from "openai";
 
 /**
  * Model split:
- * - CHAT_MODEL powers the live facilitator conversation — balanced quality,
+ * - CHAT_MODEL powers the live facilitator conversation: balanced quality,
  *   low latency, reliable tool calls.
  * - ANALYSIS_MODEL powers the analytical pipeline (topic labeling, creative
  *   tension derivation, position scoring). It runs infrequently and in the

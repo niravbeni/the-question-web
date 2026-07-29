@@ -83,7 +83,7 @@ export async function POST(req: Request) {
           messages: chatMessages,
           stream: true,
           // GPT-5.6 requires effort "none" to combine function tools with
-          // chat completions — which also keeps the facilitator snappy.
+          // chat completions: which also keeps the facilitator snappy.
           reasoning_effort: "none",
           tools: chatTools,
           tool_choice: mustFinalize

@@ -9,9 +9,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Women's Health × AI — an IDEO project",
+  title: "Women's Health × AI · an IDEO project",
   description:
-    "Finish a sentence, sharpen your point of view with a facilitator, and join an anonymous landscape of where people stand on women's health and AI — clustered into topics and stretched across creative tensions.",
+    "Finish a sentence, sharpen your point of view with a facilitator, and join an anonymous landscape of where people stand on women's health and AI, clustered into topics and stretched across creative tensions.",
 };
 
 export default function RootLayout({

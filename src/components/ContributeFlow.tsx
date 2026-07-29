@@ -266,15 +266,15 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
                 disabled={busy}
                 className="rounded-full border border-line px-5 py-2.5 text-xs font-medium text-ink-soft transition-colors hover:border-ink/40 hover:text-ink disabled:opacity-40"
               >
-                I&apos;ve said what I wanted — summarize now
+                I&apos;ve said what I wanted. Summarize now
               </button>
             </div>
           </form>
 
           {error && <p className="mt-4 text-sm text-ink">{error}</p>}
           <p className="mt-8 text-xs text-muted">
-            No personal medical details needed. The conversation stays private — only
-            the summary you approve is published.
+            No personal medical details needed. The conversation stays private;
+            only the summary you approve is published.
           </p>
         </div>
       </main>
@@ -293,7 +293,7 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
             Does this say what you mean?
           </h1>
           <p className="mt-2 text-sm text-ink-soft">
-            Edit it freely — these are the exact words that will appear on the
+            Edit it freely. These are the exact words that will appear on the
             landscape, anonymously.
           </p>
           <textarea

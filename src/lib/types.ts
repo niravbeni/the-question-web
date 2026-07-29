@@ -17,7 +17,7 @@ export interface ChatMessage {
   content: string;
 }
 
-/** A published point of view — the unit everything else is computed from. */
+/** A published point of view: the unit everything else is computed from. */
 export interface Pov {
   id: string;
   starterId: string;

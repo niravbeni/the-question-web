@@ -1,6 +1,6 @@
 /**
  * All visitor-facing copy in one place so it can be edited without touching
- * components. Tone: declarative, high-contrast, spare — no exclamation points,
+ * components. Tone: declarative, high-contrast, spare: no exclamation points,
  * no hype, as few words as possible.
  */
 

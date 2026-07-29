@@ -56,7 +56,7 @@ export async function POST(req: Request) {
     );
   }
 
-  // Moderation gate — only when a key is configured.
+  // Moderation gate: only when a key is configured.
   const openai = getOpenAI();
   if (openai) {
     try {
@@ -113,7 +113,7 @@ export async function POST(req: Request) {
   }
 
   // If enough new voices have accumulated, recalibrate after the response is
-  // sent — `after` keeps the serverless function alive for the work.
+  // sent: `after` keeps the serverless function alive for the work.
   after(async () => {
     await maybeAutoRecalibrate();
   });

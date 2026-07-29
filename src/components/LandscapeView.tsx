@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 import { getMyPovIds } from "@/lib/mine";
 import type { Landscape, LandscapePoint, LandscapeTension } from "@/lib/types";
 
-// The 3D space view pulls in three.js — load it only when opened.
+// The 3D space view pulls in three.js: load it only when opened.
 const SpaceView = dynamic(() => import("./SpaceView"), {
   ssr: false,
   loading: () => (
@@ -20,7 +20,7 @@ const SpaceView = dynamic(() => import("./SpaceView"), {
 
 /**
  * The landscape, one topic at a time: a selector across the top, the active
- * topic's tensions stacked below. Each tension is a single clean axis — two
+ * topic's tensions stacked below. Each tension is a single clean axis: two
  * ideas flanking a line, every voice a dot between them. Hover or tap a dot
  * to read the view; dots from this browser are marked "you".
  */
@@ -224,7 +224,7 @@ function TensionAxis({
 
   return (
     <div>
-      {/* The question at stake — the heading of this tension */}
+      {/* The question at stake: the heading of this tension */}
       <h3 className="mx-auto max-w-2xl text-center font-display text-lg leading-snug text-ink sm:text-xl">
         {tension.question}
       </h3>
