@@ -50,7 +50,6 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
   const [busy, setBusy] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showHistory, setShowHistory] = useState(false);
   const finalizedRef = useRef(false);
 
   const fullOpening = `${starter.text.replace(/…\s*$/, "")}… ${continuation.trim()}`;
@@ -138,6 +137,28 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
     void runExchange(next);
   }
 
+  /**
+   * Step back one question. The previous exchange is already in state, so this
+   * drops the current question plus the answer that prompted it and puts that
+   * answer back in the box. From the first question it returns to the opening.
+   */
+  function goBack() {
+    if (busy) return;
+    setError(null);
+    const answeredCount = messages.filter((m) => m.role === "user").length - 1;
+    if (answeredCount < 1) {
+      setMessages([]);
+      setAnswer("");
+      setPhase("write");
+      return;
+    }
+    const previousAnswer = [...messages]
+      .reverse()
+      .find((m) => m.role === "user")?.content;
+    setMessages(messages.slice(0, -2));
+    setAnswer(previousAnswer ?? "");
+  }
+
   /** Skip any remaining questions and go straight to the summary. */
   function skipToSummary() {
     if (busy) return;
@@ -216,82 +237,58 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
       streamingText ||
       [...messages].reverse().find((m) => m.role === "assistant")?.content ||
       "";
-    const answered = messages.filter((m) => m.role === "user").length - 1;
 
     return (
-      <main className="flex min-h-0 flex-1 flex-col">
-        <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col px-5 pt-8 pb-8">
-          {/* Everything said so far, tucked behind a toggle */}
-          <div className="border-b border-line pb-4">
-            <button
-              type="button"
-              onClick={() => setShowHistory((v) => !v)}
-              className="inline-flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-ink"
+      <main className="flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-4xl px-5 py-10 sm:py-14">
+          <button
+            type="button"
+            onClick={goBack}
+            disabled={busy}
+            className="inline-flex items-center gap-2 text-sm text-muted transition-colors hover:text-ink disabled:opacity-40"
+          >
+            <svg
+              viewBox="0 0 16 16"
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
             >
-              {showHistory ? "Hide what you've said" : "See what you've said so far"}
-              <svg
-                viewBox="0 0 16 16"
-                className={`h-3.5 w-3.5 transition-transform ${showHistory ? "rotate-180" : ""}`}
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M4 6l4 4 4-4" />
-              </svg>
-            </button>
-            {showHistory && (
-              <div className="mt-4 space-y-3">
-                <p className="font-display text-lg leading-relaxed text-ink-soft">
-                  {fullOpening}
-                </p>
-                {answered > 0 && (
-                  <ul className="space-y-1.5">
-                    {messages.slice(1).map((m, i) =>
-                      m.role === "user" ? (
-                        <li key={i} className="text-sm leading-relaxed text-ink-soft">
-                          <span className="text-muted">You added: </span>
-                          {m.content}
-                        </li>
-                      ) : null,
-                    )}
-                  </ul>
-                )}
-              </div>
-            )}
-          </div>
+              <path d="M9.5 3.5L5 8l4.5 4.5" />
+            </svg>
+            Back
+          </button>
 
-          {/* Current question, big */}
-          <div className="mt-8">
-            <p className="min-h-[2.5rem] font-display text-2xl leading-snug text-ink sm:text-3xl">
-              {currentQuestion || "…"}
-            </p>
-          </div>
+          <h1 className="mt-6 min-h-[2.5rem] font-display text-3xl leading-snug text-ink sm:text-4xl">
+            {currentQuestion || "…"}
+          </h1>
 
           <form
             onSubmit={(e) => {
               e.preventDefault();
               sendAnswer();
             }}
-            className="mt-6 flex min-h-0 flex-1 flex-col"
           >
             <textarea
               value={answer}
               onChange={(e) => setAnswer(e.target.value)}
               onKeyDown={submitOnEnter(sendAnswer)}
               placeholder="Answer in your own words…"
+              rows={5}
               disabled={busy}
-              className="min-h-24 w-full flex-1 resize-none rounded-[12px] border border-line bg-paper p-4 text-base leading-relaxed text-ink placeholder:text-muted focus:border-ink/40 disabled:opacity-60"
+              className="mt-8 w-full resize-none rounded-[12px] border border-line bg-paper p-5 font-display text-xl leading-relaxed text-ink placeholder:text-muted focus:border-ink/40 disabled:opacity-60 sm:text-2xl"
             />
-            <div className="mt-4 flex items-center justify-between gap-4">
+            <div className="mt-8 flex items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <button
                   type="submit"
                   disabled={busy || !answer.trim()}
-                  className="rounded-full bg-ink px-6 py-3 text-sm font-medium text-paper hover:bg-ink/85 disabled:opacity-40"
+                  className="rounded-full bg-ink px-7 py-3.5 text-sm font-medium text-paper transition-opacity hover:bg-ink/85 disabled:opacity-40"
                 >
-                  {busy ? "Listening…" : "Send"}
+                  {busy ? "Listening…" : "Send →"}
                 </button>
                 {!busy && answer.trim() && <EnterHint />}
               </div>
@@ -299,7 +296,7 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
                 <button
                   type="button"
                   onClick={skipToSummary}
-                  className="py-3 text-sm text-muted underline underline-offset-4 transition-colors hover:text-ink"
+                  className="text-sm text-muted underline underline-offset-4 transition-colors hover:text-ink"
                 >
                   I&apos;ve said what I need, go to my summary →
                 </button>
@@ -307,7 +304,7 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
             </div>
           </form>
 
-          {error && <p className="mt-3 text-sm text-ink">{error}</p>}
+          {error && <p className="mt-4 text-sm text-ink">{error}</p>}
         </div>
       </main>
     );
