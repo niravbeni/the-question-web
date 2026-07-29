@@ -22,7 +22,6 @@ export const siteCopy = {
 
   landscapePreview: {
     heading: "See the landscape",
-    tagline: "A living map of where people stand.",
     cta: "Open the landscape",
   },
 
