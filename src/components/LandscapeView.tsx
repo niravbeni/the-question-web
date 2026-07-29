@@ -52,11 +52,57 @@ export default function LandscapeView({
   // Basic swipe support.
   const touchX = useRef<number | null>(null);
 
+  // Horizontal trackpad scrolling rotates the carousel. A short lock keeps
+  // one continuous gesture from skipping several topics at once.
+  const trackRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    let accum = 0;
+    let locked = false;
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+      e.preventDefault();
+      if (locked) return;
+      accum += e.deltaX;
+      if (Math.abs(accum) > 60) {
+        const dir = accum > 0 ? 1 : -1;
+        setIndex((i) => Math.max(0, Math.min(count - 1, i + dir)));
+        accum = 0;
+        locked = true;
+        setTimeout(() => {
+          locked = false;
+        }, 550);
+      }
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [count]);
+
   const arrowClass = (disabled: boolean) =>
-    "flex h-10 w-10 items-center justify-center rounded-full border text-lg transition-colors " +
+    "flex h-10 w-10 items-center justify-center rounded-full border transition-colors " +
     (disabled
       ? "border-line text-muted/50"
       : "border-line text-ink hover:border-ink/40");
+
+  const chevron = (dir: "left" | "right") => (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      aria-hidden
+      className={dir === "right" ? "-scale-x-100" : undefined}
+    >
+      <path
+        d="M9.5 3.5 5 8l4.5 4.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
 
   return (
     <main className="flex-1">
@@ -78,7 +124,7 @@ export default function LandscapeView({
               aria-label="Previous topic"
               className={arrowClass(index === 0)}
             >
-              ←
+              {chevron("left")}
             </button>
             <button
               onClick={() => go(index + 1)}
@@ -86,14 +132,15 @@ export default function LandscapeView({
               aria-label="Next topic"
               className={arrowClass(index === count - 1)}
             >
-              →
+              {chevron("right")}
             </button>
           </div>
         </div>
 
         {/* Sliding topics */}
         <div
-          className="overflow-hidden"
+          ref={trackRef}
+          className="overflow-hidden overscroll-x-contain"
           onTouchStart={(e) => {
             touchX.current = e.touches[0].clientX;
           }}
