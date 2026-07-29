@@ -360,19 +360,20 @@ Derive from them:
 
 2. "summary": one sentence naming the shared subject AND the live disagreement inside it.
 
-3. "tensions": 2 or 3 creative tensions: the axes these views ACTUALLY divide along. For each:
+3. "tensions": exactly 2 creative tensions: the axes these views ACTUALLY divide along. For each:
    - "pole_a" and "pole_b": short phrases (max 6 words), each a position that at least one of these views genuinely holds or clearly leans toward. Both poles must have real merit: never a reasonable position versus a strawman, and never generic axes like optimism vs pessimism or pro-AI vs anti-AI. Find the specific trade-off: what would one group protect that the other would spend?
    - "question": one sentence naming what is truly at stake between the poles.
-   A reader should be able to point at specific views above that sit near each pole. If you cannot, the tension is invented: drop it.
+   A reader should be able to point at specific views above that sit near each pole. If you cannot, the tension is invented: replace it with a sharper one.
 
-If these views mostly agree, return fewer tensions (even just one) rather than manufacturing disagreement.
+Return exactly two tensions. Even if these views mostly agree, surface the two most meaningful fault lines rather than manufacturing hostility.
 
 Respond with JSON only:
-{"label": "...", "summary": "...", "tensions": [{"pole_a": "...", "pole_b": "...", "question": "..."}]}`;
+{"label": "...", "summary": "...", "tensions": [{"pole_a": "...", "pole_b": "...", "question": "..."}, {"pole_a": "...", "pole_b": "...", "question": "..."}]}`;
 
   const parsed = await jsonCall<DerivedTopic>(openai, prompt);
   if (!parsed || !parsed.label || !Array.isArray(parsed.tensions)) return null;
-  parsed.tensions = parsed.tensions.slice(0, 3);
+  // Ask for two; keep at most two, and accept fewer if that is all it found.
+  parsed.tensions = parsed.tensions.slice(0, 2);
   return parsed;
 }
 
