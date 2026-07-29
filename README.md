@@ -84,7 +84,9 @@ src/
     mine.ts                        localStorage "which dots are mine" identity
   components/
     ContributeFlow.tsx             write -> chat -> review -> published
-    LandscapeView.tsx              Topics, tension axes, dots, "you" markers
+    LandscapeOverview.tsx          Carousel: spider chart and topic grid
+    SpiderView.tsx                 Spider chart: topics as corners, voices inside
+    TopicTensions.tsx              One topic's tensions: shaded lines, "you" marker
     Header.tsx
 ```
 

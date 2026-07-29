@@ -1,6 +1,6 @@
+import { redirect } from "next/navigation";
 import Header from "@/components/Header";
-import LandscapeView from "@/components/LandscapeView";
-import SpiderView from "@/components/SpiderView";
+import LandscapeOverview from "@/components/LandscapeOverview";
 import TopicTensions from "@/components/TopicTensions";
 import { getLandscape } from "@/lib/db";
 import { ensureSeeded } from "@/lib/seed";
@@ -8,10 +8,9 @@ import { ensureSeeded } from "@/lib/seed";
 export const dynamic = "force-dynamic";
 
 /**
- * Three ways to read the same landscape:
- * - default: the spider chart, every topic a corner and every voice inside it
+ * Two ways to read the same landscape:
+ * - default: the overview carousel (spider chart and topic grid, side by side)
  * - ?topic=i: that topic's tensions
- * - ?view=classic: the original topic carousel, kept as an alternate
  */
 export default async function LandscapePage({
   searchParams,
@@ -19,6 +18,10 @@ export default async function LandscapePage({
   searchParams: Promise<{ pov?: string; topic?: string; view?: string }>;
 }) {
   const { pov, topic, view } = await searchParams;
+
+  // The classic carousel has folded into the overview; keep old links working.
+  if (view !== undefined) redirect("/landscape");
+
   await ensureSeeded();
   const landscape = await getLandscape();
 
@@ -32,14 +35,7 @@ export default async function LandscapePage({
   return (
     <div className="flex h-dvh flex-col">
       <Header />
-      {view === "classic" ? (
-        <LandscapeView
-          landscape={landscape}
-          focusPovId={focusPovId}
-          initialTopic={topicIndex}
-          switchHref="/landscape"
-        />
-      ) : selected && topicIndex !== null ? (
+      {selected && topicIndex !== null ? (
         <TopicTensions
           topic={selected}
           index={topicIndex}
@@ -47,7 +43,7 @@ export default async function LandscapePage({
           focusPovId={focusPovId}
         />
       ) : (
-        <SpiderView landscape={landscape} focusPovId={focusPovId} />
+        <LandscapeOverview landscape={landscape} focusPovId={focusPovId} />
       )}
     </div>
   );

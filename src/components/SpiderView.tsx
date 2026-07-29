@@ -1,15 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import { useMyPovIds } from "@/lib/mine";
 import type { Landscape, SpiderPoint } from "@/lib/types";
 
 /**
  * The whole landscape as one shape: a polygon whose corners are the topics
- * that emerged from the views, with every voice placed inside according to how
- * strongly it pulls toward each topic. The polygon changes shape as topics
- * come and go. Corners are the way in: click one to read its tensions.
+ * that emerged from the views. Every voice is a faint dot inside it, placed by
+ * how strongly it pulls toward each topic; a soft marker shows where the crowd
+ * as a whole leans, and one clear circle shows where you sit. Corners are the
+ * way in: click one to read its tensions. Rendered as a slide of the landscape
+ * carousel, so it carries no chrome of its own.
  */
 export default function SpiderView({
   landscape,
@@ -19,98 +21,27 @@ export default function SpiderView({
   focusPovId: string | null;
 }) {
   const myIds = useMyPovIds();
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [pinnedId, setPinnedId] = useState<string | null>(focusPovId);
 
-  const topics = landscape.topics;
-  const shownId = hoveredId ?? pinnedId;
-  const shown = landscape.spiderPoints.find((p) => p.povId === shownId) ?? null;
-  const shownTopicIndex = shown
-    ? topics.findIndex((t) => t.id === shown.topicId)
-    : -1;
+  if (landscape.topics.length === 0) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <p className="max-w-sm text-center font-display text-xl leading-snug text-ink-soft">
+          The landscape is still forming. Add the first views and topics will
+          emerge.
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <main className="flex min-h-0 flex-1 flex-col">
-      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col px-5">
-        {/* Top bar: the way back, where you are, and the way in */}
-        <div className="grid grid-cols-3 items-center border-b border-line py-4">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 justify-self-start text-sm font-medium text-ink-soft transition-colors hover:text-ink"
-          >
-            <Chevron />
-            Back
-          </Link>
-          <Link
-            href="/landscape?view=classic"
-            className="justify-self-center text-xs font-medium uppercase tracking-[0.14em] text-muted transition-colors hover:text-ink"
-          >
-            Classic view
-          </Link>
-          <Link
-            href="/#starters"
-            className="justify-self-end rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-paper hover:bg-ink/85"
-          >
-            Add your view
-          </Link>
-        </div>
-
-        {topics.length === 0 ? (
-          <div className="flex flex-1 items-center justify-center">
-            <p className="max-w-sm text-center font-display text-xl leading-snug text-ink-soft">
-              The landscape is still forming. Add the first views and topics will
-              emerge.
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="flex min-h-0 flex-1 items-center justify-center py-2">
-              <Chart
-                landscape={landscape}
-                myIds={myIds}
-                shownId={shownId}
-                onHover={setHoveredId}
-                onPick={(id) => setPinnedId((cur) => (cur === id ? null : id))}
-              />
-            </div>
-
-            {/* Reading area: whichever voice is hovered or held */}
-            <div className="flex items-start justify-between gap-6 border-t border-line py-4">
-              <Legend />
-              <div className="min-h-16 max-w-2xl flex-1">
-                {shown ? (
-                  <div className="rounded-[12px] border border-line bg-paper-2/50 px-5 py-3">
-                    <div className="flex items-baseline justify-between gap-4">
-                      <p className="text-[10px] font-medium uppercase tracking-wider text-muted">
-                        {myIds.includes(shown.povId) ? "Your view" : "One voice"}
-                        {shownTopicIndex >= 0
-                          ? ` · ${topics[shownTopicIndex].label}`
-                          : ""}
-                      </p>
-                      {shownTopicIndex >= 0 && (
-                        <Link
-                          href={`/landscape?topic=${shownTopicIndex}`}
-                          className="shrink-0 text-xs text-muted underline underline-offset-4 transition-colors hover:text-ink"
-                        >
-                          Open topic
-                        </Link>
-                      )}
-                    </div>
-                    <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">
-                      {shown.summary}
-                    </p>
-                  </div>
-                ) : (
-                  <p className="pt-1 text-sm text-muted">
-                    Hover a dot to read a voice. Click a topic to open its tensions.
-                  </p>
-                )}
-              </div>
-            </div>
-          </>
-        )}
+    <div className="flex h-full flex-col">
+      <div className="flex min-h-0 flex-1 items-center justify-center py-2">
+        <Chart landscape={landscape} myIds={myIds} focusPovId={focusPovId} />
       </div>
-    </main>
+      <div className="flex justify-center pb-1 pt-3">
+        <Legend />
+      </div>
+    </div>
   );
 }
 
@@ -208,6 +139,18 @@ function placePoint(point: SpiderPoint, cs: Corner[]): { x: number; y: number } 
   return { x: 50 + x * RADIUS, y: 50 + y * RADIUS };
 }
 
+/** Mean of a set of points, or null when the set is empty. */
+function meanPoint(
+  points: Array<{ x: number; y: number }>,
+): { x: number; y: number } | null {
+  if (points.length === 0) return null;
+  const sum = points.reduce(
+    (acc, p) => ({ x: acc.x + p.x, y: acc.y + p.y }),
+    { x: 0, y: 0 },
+  );
+  return { x: sum.x / points.length, y: sum.y / points.length };
+}
+
 /* ------------------------------------------------------------------ */
 /* Chart                                                              */
 /* ------------------------------------------------------------------ */
@@ -215,23 +158,37 @@ function placePoint(point: SpiderPoint, cs: Corner[]): { x: number; y: number } 
 function Chart({
   landscape,
   myIds,
-  shownId,
-  onHover,
-  onPick,
+  focusPovId,
 }: {
   landscape: Landscape;
   myIds: string[];
-  shownId: string | null;
-  onHover: (id: string | null) => void;
-  onPick: (id: string) => void;
+  focusPovId: string | null;
 }) {
   const topics = landscape.topics;
   const cs = useMemo(() => corners(topics.length), [topics.length]);
+
   const placed = useMemo(
     () =>
       landscape.spiderPoints.map((point) => ({ point, ...placePoint(point, cs) })),
     [landscape.spiderPoints, cs],
   );
+
+  // Where the whole room leans: the centre of the cloud of voices. A rough
+  // estimate, not a precise statistic, so it reads as a soft region.
+  const crowd = useMemo(
+    () => meanPoint(placed.map(({ x, y }) => ({ x, y }))),
+    [placed],
+  );
+
+  // Where you sit: the average of the views published from this browser,
+  // collapsed to a single marker so "you" is one clear point on the map.
+  const you = useMemo(() => {
+    const mine = placed.filter(
+      ({ point }) =>
+        point.povId === focusPovId || myIds.includes(point.povId),
+    );
+    return meanPoint(mine.map(({ x, y }) => ({ x, y })));
+  }, [placed, myIds, focusPovId]);
 
   const outline = cs.map((c) => `${c.x},${c.y}`).join(" ");
   const line = "var(--color-line)";
@@ -278,51 +235,41 @@ function Chart({
             strokeWidth="0.4"
           />
         ) : (
-          <polyline
-            points={outline}
-            fill="none"
-            stroke={line}
-            strokeWidth="0.4"
-          />
+          <polyline points={outline} fill="none" stroke={line} strokeWidth="0.4" />
         )}
       </svg>
 
-      {/* Voices */}
-      {placed.map(({ point, x, y }) => {
-        const isMine = myIds.includes(point.povId);
-        const isShown = shownId === point.povId;
-        return (
-          <button
-            key={point.povId}
-            onMouseEnter={() => onHover(point.povId)}
-            onMouseLeave={() => onHover(null)}
-            onClick={() => onPick(point.povId)}
-            aria-label="Read this point of view"
-            className="absolute -translate-x-1/2 -translate-y-1/2 p-1.5"
-            style={{
-              left: pct(x),
-              top: pct(y),
-              zIndex: isMine || isShown ? 3 : 2,
-            }}
-          >
-            <span
-              className={
-                isMine
-                  ? "block h-3 w-3 rounded-full bg-ink ring-4 ring-ink/15 transition-transform duration-150" +
-                    (isShown ? " scale-125" : "")
-                  : isShown
-                    ? "block h-2.5 w-2.5 scale-125 rounded-full bg-ink transition-transform duration-150"
-                    : "block h-2.5 w-2.5 rounded-full bg-ink/25 transition-all duration-150 hover:bg-ink/60"
-              }
-            />
-            {isMine && (
-              <span className="pointer-events-none absolute left-1/2 top-full -translate-x-1/2 text-[10px] font-semibold uppercase tracking-wider text-ink">
-                you
-              </span>
-            )}
-          </button>
-        );
-      })}
+      {/* Voices: faint texture showing the spread, not individually readable */}
+      {placed.map(({ point, x, y }) => (
+        <span
+          key={point.povId}
+          className="pointer-events-none absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-ink/15"
+          style={{ left: pct(x), top: pct(y), zIndex: 2 }}
+        />
+      ))}
+
+      {/* Where the crowd leans: a soft region behind the sharper markers */}
+      {crowd && (
+        <span
+          className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2"
+          style={{ left: pct(crowd.x), top: pct(crowd.y), zIndex: 3 }}
+        >
+          <span className="block h-6 w-6 rounded-full bg-ink/10 ring-1 ring-ink/25" />
+        </span>
+      )}
+
+      {/* Where you sit: one clear circle, the answer to "where am I?" */}
+      {you && (
+        <span
+          className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2"
+          style={{ left: pct(you.x), top: pct(you.y), zIndex: 5 }}
+        >
+          <span className="block h-3.5 w-3.5 rounded-full bg-ink ring-4 ring-ink/15" />
+          <span className="absolute left-1/2 top-full -translate-x-1/2 pt-0.5 text-[10px] font-semibold uppercase tracking-wider text-ink">
+            you
+          </span>
+        </span>
+      )}
 
       {/* Topics: the corners, and the way into each one */}
       {cs.map((corner, i) => {
@@ -350,11 +297,11 @@ function Chart({
             {/* Vertex marker */}
             <span
               className="pointer-events-none absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rotate-45 border border-ink/50 bg-paper"
-              style={{ left: pct(corner.x), top: pct(corner.y), zIndex: 1 }}
+              style={{ left: pct(corner.x), top: pct(corner.y), zIndex: 4 }}
             />
             <Link
               href={`/landscape?topic=${i}`}
-              className={`group absolute z-[4] block max-w-[9.5rem] px-1.5 py-1 ${align} ${vertical} ${textAlign}`}
+              className={`group absolute z-[6] block max-w-[9.5rem] px-1.5 py-1 ${align} ${vertical} ${textAlign}`}
               style={{
                 left: pct(50 + (corner.x - 50) * 1.13),
                 top: pct(50 + (corner.y - 50) * 1.13),
@@ -380,33 +327,23 @@ function Chart({
 
 function Legend() {
   return (
-    <ul className="hidden shrink-0 space-y-1.5 pt-1 sm:block">
+    <ul className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5">
       <li className="flex items-center gap-2 text-xs text-muted">
-        <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-ink/25" />
-        one voice
+        <span className="h-2 w-2 shrink-0 rounded-full bg-ink/15" />
+        a voice
       </li>
       <li className="flex items-center gap-2 text-xs text-muted">
-        <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-ink ring-2 ring-ink/15" />
-        your view
+        <span className="h-4 w-4 shrink-0 rounded-full bg-ink/10 ring-1 ring-ink/25" />
+        where most lean
+      </li>
+      <li className="flex items-center gap-2 text-xs text-muted">
+        <span className="h-3 w-3 shrink-0 rounded-full bg-ink ring-2 ring-ink/15" />
+        you
       </li>
       <li className="flex items-center gap-2 text-xs text-muted">
         <span className="h-2 w-2 shrink-0 rotate-45 border border-ink/50" />
         a topic
       </li>
     </ul>
-  );
-}
-
-function Chevron() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-      <path
-        d="M9.5 3.5 5 8l4.5 4.5"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }
