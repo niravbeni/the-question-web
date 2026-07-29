@@ -15,9 +15,9 @@ export default async function ContributePage({
   if (!starter) notFound();
 
   return (
-    <>
+    <div className="flex h-dvh flex-col">
       <Header />
       <ContributeFlow starter={starter} />
-    </>
+    </div>
   );
 }

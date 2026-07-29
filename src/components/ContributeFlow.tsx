@@ -180,7 +180,7 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
   /* ---------- phase: write ---------- */
   if (phase === "write") {
     return (
-      <main className="flex-1">
+      <main className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-4xl px-5 py-16 sm:py-24">
           <h1 className="font-display text-3xl leading-snug text-ink sm:text-5xl">
             {starter.text}
@@ -222,21 +222,16 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
     const answered = messages.filter((m) => m.role === "user").length - 1;
 
     return (
-      <main className="flex-1">
-        <div className="mx-auto max-w-4xl px-5 py-12 sm:py-16">
-          {/* Your opening stays visible the whole time */}
-          <div className="rounded-[12px] border border-line bg-paper-2/60 p-5">
-            <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">
-              Your opening
-            </p>
-            <p className="mt-2 font-display text-lg leading-relaxed text-ink">
-              {fullOpening}
-            </p>
-          </div>
+      <main className="flex min-h-0 flex-1 flex-col">
+        <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col px-5 pt-10 pb-8">
+          {/* Your opening stays visible the whole time, quietly */}
+          <p className="font-display text-lg leading-relaxed text-ink-soft">
+            {fullOpening}
+          </p>
 
           {/* Earlier answers, compact */}
           {answered > 0 && (
-            <ul className="mt-6 space-y-2">
+            <ul className="mt-4 space-y-1.5">
               {messages.slice(1).map((m, i) =>
                 m.role === "user" ? (
                   <li key={i} className="text-sm leading-relaxed text-ink-soft">
@@ -249,7 +244,7 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
           )}
 
           {/* Current question, big */}
-          <div className="mt-10">
+          <div className="mt-8 border-t border-line pt-8">
             <p className="min-h-[2.5rem] font-display text-2xl leading-snug text-ink sm:text-3xl">
               {currentQuestion || "…"}
             </p>
@@ -260,43 +255,44 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
               e.preventDefault();
               sendAnswer();
             }}
-            className="mt-8"
+            className="mt-6 flex min-h-0 flex-1 flex-col"
           >
             <textarea
               value={answer}
               onChange={(e) => setAnswer(e.target.value)}
               onKeyDown={submitOnEnter(sendAnswer)}
               placeholder="Answer in your own words…"
-              rows={3}
               disabled={busy}
-              className="w-full resize-none rounded-[12px] border border-line bg-paper p-4 text-base leading-relaxed text-ink placeholder:text-muted focus:border-ink/40 disabled:opacity-60"
+              className="min-h-24 w-full flex-1 resize-none rounded-[12px] border border-line bg-paper p-4 text-base leading-relaxed text-ink placeholder:text-muted focus:border-ink/40 disabled:opacity-60"
             />
-            <div className="mt-3 inline-flex flex-col items-end">
-              <button
-                type="submit"
-                disabled={busy || !answer.trim()}
-                className="rounded-full bg-ink px-6 py-3 text-sm font-medium text-paper hover:bg-ink/85 disabled:opacity-40"
-              >
-                {busy ? "Listening…" : "Send"}
-              </button>
-              {!busy && answer.trim() && (
-                <div className="mt-2">
-                  <EnterHint />
-                </div>
+            <div className="mt-4 flex items-start justify-between gap-4">
+              <div className="inline-flex flex-col items-end">
+                <button
+                  type="submit"
+                  disabled={busy || !answer.trim()}
+                  className="rounded-full bg-ink px-6 py-3 text-sm font-medium text-paper hover:bg-ink/85 disabled:opacity-40"
+                >
+                  {busy ? "Listening…" : "Send"}
+                </button>
+                {!busy && answer.trim() && (
+                  <div className="mt-2">
+                    <EnterHint />
+                  </div>
+                )}
+              </div>
+              {!busy && (
+                <button
+                  type="button"
+                  onClick={skipToSummary}
+                  className="py-3 text-sm text-muted underline underline-offset-4 transition-colors hover:text-ink"
+                >
+                  I&apos;ve said what I need, go to my summary →
+                </button>
               )}
             </div>
           </form>
 
-          {!busy && (
-            <button
-              onClick={skipToSummary}
-              className="mt-5 text-sm text-muted underline underline-offset-4 transition-colors hover:text-ink"
-            >
-              I&apos;ve said what I need, go to my summary →
-            </button>
-          )}
-
-          {error && <p className="mt-4 text-sm text-ink">{error}</p>}
+          {error && <p className="mt-3 text-sm text-ink">{error}</p>}
         </div>
       </main>
     );
@@ -305,7 +301,7 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
   /* ---------- phase: review ---------- */
   if (phase === "review") {
     return (
-      <main className="flex-1">
+      <main className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-4xl px-5 py-12 sm:py-16">
           <h1 className="font-display text-2xl text-ink sm:text-3xl">
             Does this say what you mean?
@@ -344,7 +340,7 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
 
   /* ---------- phase: published ---------- */
   return (
-    <main className="flex-1">
+    <main className="flex-1 overflow-y-auto">
       <div className="mx-auto max-w-4xl px-5 py-24 text-center">
         <h1 className="font-display text-3xl text-ink">Your view is on the landscape.</h1>
       </div>
