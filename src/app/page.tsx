@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Header from "@/components/Header";
+import SnapHashScroll from "@/components/SnapHashScroll";
 import { siteCopy } from "@/content/copy";
 import { getLandscape, getStarters } from "@/lib/db";
 import { ensureSeeded } from "@/lib/seed";
@@ -14,6 +15,7 @@ export default async function LandingPage() {
   return (
     // The page is its own scroll container so each screen snaps into place.
     <div className="h-dvh snap-y snap-mandatory overflow-y-auto scroll-smooth">
+      <SnapHashScroll />
       <Header />
 
       {/* Screen 1: hero */}
@@ -42,21 +44,21 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* Screen 2: sentence starters */}
+      {/* Screen 2: sentence starters, rows folding down to the screen edge */}
       <section
         id="starters"
-        className="flex min-h-dvh snap-start flex-col justify-center border-b border-line pt-16 pb-6"
+        className="flex h-dvh snap-start flex-col border-b border-line pt-16"
       >
-        <div className="mx-auto w-full max-w-6xl px-5">
-          <h2 className="font-display text-2xl text-ink">
+        <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-5">
+          <h2 className="py-6 font-display text-2xl text-ink">
             {siteCopy.starters.heading}
           </h2>
-          <div className="mt-6 divide-y divide-line border-t border-b border-line">
+          <div className="flex flex-1 flex-col divide-y divide-line border-t border-line">
             {sorted.map((starter) => (
               <Link
                 key={starter.id}
                 href={`/contribute/${starter.id}`}
-                className="group flex items-center justify-between gap-6 py-5 transition-colors hover:bg-paper-2/60 sm:py-6"
+                className="group flex flex-1 items-center justify-between gap-6 transition-colors hover:bg-paper-2/60"
               >
                 <span className="max-w-4xl font-display text-2xl leading-snug text-ink sm:text-4xl">
                   {starter.text}
