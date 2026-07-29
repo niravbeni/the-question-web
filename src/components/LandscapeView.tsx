@@ -93,7 +93,7 @@ export default function LandscapeView({
         )}
 
         {/* Footer actions */}
-        <div className="mt-16 border-t border-line pt-8">
+        <div className="mt-16">
           <Link
             href="/#starters"
             className="inline-block rounded-full bg-ink px-6 py-3 text-sm font-medium text-paper hover:bg-ink/85"
