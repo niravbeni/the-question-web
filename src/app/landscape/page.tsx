@@ -15,9 +15,9 @@ export default async function LandscapePage({
   const landscape = await getLandscape();
 
   return (
-    <>
+    <div className="flex h-dvh flex-col">
       <Header />
       <LandscapeView landscape={landscape} focusPovId={pov ?? null} />
-    </>
+    </div>
   );
 }

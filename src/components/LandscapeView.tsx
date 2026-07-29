@@ -105,19 +105,14 @@ export default function LandscapeView({
   );
 
   return (
-    <main className="flex-1">
-      <div className="mx-auto max-w-6xl px-5 py-14 sm:py-18">
-        {/* Heading */}
-        <h1 className="max-w-3xl font-display text-3xl leading-tight text-ink sm:text-5xl">
-          Where people stand on women&apos;s health and AI.
-        </h1>
-
+    <main className="min-h-0 flex-1">
+      <div className="mx-auto flex h-full max-w-6xl flex-col px-5">
         {/* Carousel controls */}
-        <div className="mt-12 flex items-center justify-between border-b border-line pb-4">
+        <div className="flex items-center justify-between border-b border-line py-4">
           <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">
             Topic {index + 1} of {count}
           </p>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => go(index - 1)}
               disabled={index === 0}
@@ -134,13 +129,19 @@ export default function LandscapeView({
             >
               {chevron("right")}
             </button>
+            <Link
+              href="/#starters"
+              className="ml-2 rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-paper hover:bg-ink/85"
+            >
+              Add your view
+            </Link>
           </div>
         </div>
 
         {/* Sliding topics */}
         <div
           ref={trackRef}
-          className="overflow-hidden overscroll-x-contain"
+          className="min-h-0 flex-1 overflow-hidden overscroll-x-contain"
           onTouchStart={(e) => {
             touchX.current = e.touches[0].clientX;
           }}
@@ -152,7 +153,7 @@ export default function LandscapeView({
           }}
         >
           <div
-            className="flex items-start transition-transform duration-500 ease-out"
+            className="flex h-full transition-transform duration-500 ease-out"
             style={{ transform: `translateX(-${index * 100}%)` }}
           >
             {topics.map((topic, i) => (
@@ -161,17 +162,14 @@ export default function LandscapeView({
                 inert={i !== index}
                 aria-hidden={i !== index}
                 className={
-                  "w-full shrink-0 pt-10 transition-opacity duration-500 " +
+                  "flex h-full w-full shrink-0 flex-col overflow-y-auto pt-6 transition-opacity duration-500 " +
                   (i === index ? "opacity-100" : "opacity-0")
                 }
               >
                 <h2 className="font-display text-2xl leading-snug text-ink sm:text-3xl">
                   {topic.label}
                 </h2>
-                <p className="mt-3 max-w-3xl text-sm leading-relaxed text-ink-soft">
-                  {topic.summary}
-                </p>
-                <div className="mt-12 space-y-14">
+                <div className="flex min-h-0 flex-1 flex-col justify-evenly gap-6 py-4">
                   {topic.tensions.map((tension) => (
                     <TensionAxis
                       key={tension.id}
@@ -187,7 +185,7 @@ export default function LandscapeView({
         </div>
 
         {/* Dots */}
-        <div className="mt-10 flex justify-center gap-2">
+        <div className="flex justify-center gap-2 py-4">
           {topics.map((topic, i) => (
             <button
               key={topic.id}
@@ -200,16 +198,6 @@ export default function LandscapeView({
               }
             />
           ))}
-        </div>
-
-        {/* Footer actions */}
-        <div className="mt-14 text-center">
-          <Link
-            href="/#starters"
-            className="inline-block rounded-full bg-ink px-6 py-3 text-sm font-medium text-paper hover:bg-ink/85"
-          >
-            Add your view
-          </Link>
         </div>
       </div>
     </main>
@@ -269,12 +257,12 @@ function TensionAxis({
   return (
     <div>
       {/* The question at stake: the heading of this tension */}
-      <h3 className="mx-auto max-w-2xl text-center font-display text-lg leading-snug text-ink sm:text-xl">
+      <h3 className="mx-auto max-w-2xl text-center font-display text-base leading-snug text-ink sm:text-lg">
         {tension.question}
       </h3>
 
       {/* Pole labels above the axis on small screens */}
-      <div className="mt-6 flex items-baseline justify-between gap-6 sm:hidden">
+      <div className="mt-4 flex items-baseline justify-between gap-6 sm:hidden">
         <span className="max-w-[45%] font-display text-sm leading-snug text-ink">
           {tension.poleA}
         </span>
@@ -284,12 +272,12 @@ function TensionAxis({
       </div>
 
       {/* Poles flanking the axis on larger screens */}
-      <div className="flex items-center gap-4 sm:mt-8 sm:gap-8">
-        <span className="hidden w-44 shrink-0 text-right font-display text-lg leading-snug text-ink sm:block">
+      <div className="flex items-center gap-4 sm:mt-2 sm:gap-8">
+        <span className="hidden w-44 shrink-0 text-right font-display text-base leading-snug text-ink sm:block">
           {tension.poleA}
         </span>
 
-        <div className="relative h-28 min-w-0 flex-1">
+        <div className="relative h-24 min-w-0 flex-1">
           {/* Axis line with soft ends */}
           <div className="absolute left-0 right-0 top-1/2 h-px bg-gradient-to-r from-ink/40 via-line to-ink/40" />
           <div className="absolute left-0 top-1/2 h-3 w-px -translate-y-1/2 bg-ink/40" />
@@ -338,15 +326,15 @@ function TensionAxis({
 
         </div>
 
-        <span className="hidden w-44 shrink-0 font-display text-lg leading-snug text-ink sm:block">
+        <span className="hidden w-44 shrink-0 font-display text-base leading-snug text-ink sm:block">
           {tension.poleB}
         </span>
       </div>
 
       {/* Reading area: a distinct panel describing the hovered or pinned view */}
-      <div className="mx-auto mt-2 min-h-28 max-w-2xl">
+      <div className="mx-auto min-h-24 max-w-2xl">
         {shown ? (
-          <div className="rounded-[12px] border border-line bg-paper-2/50 px-5 py-4 text-center">
+          <div className="rounded-[12px] border border-line bg-paper-2/50 px-5 py-3 text-center">
             <p className="text-[10px] font-medium uppercase tracking-wider text-muted">
               {myIds.includes(shown.point.povId) ? "Your view" : "One voice"}
               {" · "}
@@ -354,7 +342,7 @@ function TensionAxis({
                 ? "sits near the middle"
                 : `${Math.abs(shown.point.score) >= 0.7 ? "firmly toward" : "leans toward"} “${shown.point.score < 0 ? tension.poleA : tension.poleB}”`}
             </p>
-            <p className="mt-2 text-sm leading-relaxed text-ink-soft">
+            <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">
               {shown.point.summary}
             </p>
           </div>
