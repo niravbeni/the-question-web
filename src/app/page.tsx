@@ -75,25 +75,28 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* Screen 3: the landscape topics, rows folding down like the starters */}
+      {/* Screen 3: the landscape topics as a grid of numbered tiles */}
       <section className="flex h-dvh snap-start flex-col pt-16">
         <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-5">
           <h2 className="py-6 font-display text-2xl text-ink">
             {siteCopy.landscapePreview.heading}
           </h2>
-          <div className="flex flex-1 flex-col divide-y divide-line border-t border-line">
+          <div className="grid flex-1 grid-cols-1 border-l border-line sm:grid-cols-2">
             {landscape.topics.map((topic, i) => (
               <Link
                 key={topic.id}
                 href={`/landscape?topic=${i}`}
-                className="group flex flex-1 items-center justify-between gap-6 transition-colors hover:bg-paper-2/60"
+                className="group flex flex-col justify-between border-t border-r border-line p-6 transition-colors hover:bg-paper-2/60 sm:p-8"
               >
-                <span className="max-w-4xl font-display text-2xl leading-snug text-ink sm:text-4xl">
+                <span className="text-xs font-medium uppercase tracking-[0.14em] text-muted">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <span className="max-w-md font-display text-2xl leading-snug text-ink sm:text-3xl md:text-4xl">
                   {topic.label}
                 </span>
                 <span
                   aria-hidden
-                  className="shrink-0 text-2xl text-muted transition-transform group-hover:translate-x-1 group-hover:text-ink sm:text-3xl"
+                  className="self-end text-2xl text-muted transition-transform group-hover:translate-x-1 group-hover:text-ink"
                 >
                   →
                 </span>
