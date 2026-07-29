@@ -14,6 +14,8 @@ interface ChatBody {
   starterId: string;
   /** messages[0] is the visitor's opening paragraph. */
   messages: ChatMessage[];
+  /** Visitor chose to skip remaining questions and go straight to the summary. */
+  forceFinalize?: boolean;
 }
 
 function encodeLine(obj: unknown): Uint8Array {
@@ -52,10 +54,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Missing opening paragraph." }, { status: 400 });
   }
 
-  // The summary only comes after every follow-up question has been asked
-  // and answered; there is no skipping.
+  // Three questions is a ceiling, not a script: the model finalizes as soon
+  // as it has enough, and the visitor can skip ahead at any point.
   const followUpsAsked = messages.filter((m) => m.role === "assistant").length;
-  const mustFinalize = followUpsAsked >= MAX_FOLLOW_UPS;
+  const mustFinalize = followUpsAsked >= MAX_FOLLOW_UPS || body.forceFinalize === true;
 
   const openai = getOpenAI();
   if (!openai) {
@@ -107,13 +109,7 @@ export async function POST(req: Request) {
           }
         }
 
-        if (toolArgs && !mustFinalize) {
-          // The model tried to wrap up early. Refuse: every question gets
-          // asked. If it produced no question text, fall back to a scripted one.
-          if (text.trim() === "") {
-            push({ type: "text", value: OFFLINE_QUESTIONS[followUpsAsked] ?? OFFLINE_QUESTIONS[0] });
-          }
-        } else if (toolArgs) {
+        if (toolArgs) {
           let summary = "";
           try {
             summary = String(

@@ -3,10 +3,10 @@ import type { SentenceStarter } from "@/lib/types";
 export const MAX_FOLLOW_UPS = 3;
 
 /**
- * System prompt for the finite point-of-view facilitator. The exchange is
- * strictly bounded: the visitor has already written an opening paragraph, the
- * facilitator asks at most MAX_FOLLOW_UPS short questions (one per turn), then
- * calls finalize_pov with an anonymous summary for the visitor to approve.
+ * System prompt for the finite point-of-view facilitator. The visitor has
+ * already written an opening paragraph; the facilitator asks only as many
+ * follow-up questions as it actually needs (at most MAX_FOLLOW_UPS, one per
+ * turn), then calls finalize_pov with an anonymous summary to approve.
  */
 export function buildFacilitatorPrompt(
   starter: SentenceStarter,
@@ -18,14 +18,15 @@ export function buildFacilitatorPrompt(
 The visitor completed this sentence in their own words:
 "${starter.text}"
 
-Their opening paragraph is their first message. Your entire job is to sharpen their point of view with a few questions, then summarize it faithfully.
+Their opening paragraph is their first message. Your entire job is to sharpen their point of view with as few questions as possible, then summarize it faithfully.
 
-STRICT SHAPE OF THE EXCHANGE
-- You ask exactly ${MAX_FOLLOW_UPS} follow-up questions in total, one per turn. You have ${remaining} remaining.
-- Each question must be short (one or two sentences), specific to what they wrote, and aimed at either (a) the reasoning behind their stance, (b) a concrete trade-off they would accept, or (c) what they would want done about it.
+SHAPE OF THE EXCHANGE
+- You may ask at most ${MAX_FOLLOW_UPS} follow-up questions in total, one per turn. You have ${remaining} remaining. Never exceed this.
+- Ask a question only if the answer would materially change or sharpen the summary. A good point of view needs a stance plus either the reasoning behind it, a trade-off they would accept, or what they would want done about it.
+- If the opening (plus any answers so far) already gives you that, do not pad the exchange: call finalize_pov now. One strong paragraph can be enough on its own.
+- Each question must be short (one or two sentences) and specific to what they wrote.
 - Never ask for personal medical details, names, or identifying information. If the visitor shares them, do not repeat them.
-- Never call finalize_pov while you still have questions remaining, no matter how complete the opening feels. Ask the next question instead.
-- Once all ${MAX_FOLLOW_UPS} questions are answered, you MUST call finalize_pov. Do not ask anything further.
+- Once you have used all ${MAX_FOLLOW_UPS} questions, you MUST call finalize_pov. Do not ask anything further.
 
 FINALIZING
 Call the finalize_pov tool with a summary that:

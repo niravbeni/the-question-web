@@ -6,8 +6,6 @@ import { siteCopy } from "@/content/copy";
 import { addMyPovId } from "@/lib/mine";
 import type { ChatMessage, SentenceStarter } from "@/lib/types";
 
-const MAX_QUESTIONS = 3;
-
 type Phase = "write" | "chat" | "review" | "published";
 
 /** Small "press Enter ↵" affordance shown next to a submit button. */
@@ -55,9 +53,8 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
   const finalizedRef = useRef(false);
 
   const fullOpening = `${starter.text.replace(/…\s*$/, "")}… ${continuation.trim()}`;
-  const questionsAsked = messages.filter((m) => m.role === "assistant").length;
 
-  async function runExchange(nextMessages: ChatMessage[]) {
+  async function runExchange(nextMessages: ChatMessage[], forceFinalize = false) {
     setBusy(true);
     setError(null);
     setStreamingText("");
@@ -67,7 +64,11 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
       const res = await fetch("/api/pov/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ starterId: starter.id, messages: nextMessages }),
+        body: JSON.stringify({
+          starterId: starter.id,
+          messages: nextMessages,
+          forceFinalize,
+        }),
       });
       if (!res.ok || !res.body) {
         const data = await res.json().catch(() => ({}));
@@ -134,6 +135,18 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
     const next: ChatMessage[] = [...messages, { role: "user", content: text }];
     setMessages(next);
     void runExchange(next);
+  }
+
+  /** Skip any remaining questions and go straight to the summary. */
+  function skipToSummary() {
+    if (busy) return;
+    const text = answer.trim();
+    setAnswer("");
+    const next: ChatMessage[] = text
+      ? [...messages, { role: "user", content: text }]
+      : messages;
+    setMessages(next);
+    void runExchange(next, true);
   }
 
   async function publish() {
@@ -233,10 +246,7 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
 
           {/* Current question, big */}
           <div className="mt-10">
-            <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">
-              Question {Math.min(questionsAsked + (streamingText ? 1 : 0) || 1, MAX_QUESTIONS)} of {MAX_QUESTIONS}
-            </p>
-            <p className="mt-3 min-h-[2.5rem] font-display text-2xl leading-snug text-ink sm:text-3xl">
+            <p className="min-h-[2.5rem] font-display text-2xl leading-snug text-ink sm:text-3xl">
               {currentQuestion || "…"}
             </p>
           </div>
@@ -268,6 +278,15 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
               {!busy && answer.trim() && <EnterHint />}
             </div>
           </form>
+
+          {!busy && (
+            <button
+              onClick={skipToSummary}
+              className="mt-5 text-sm text-muted underline underline-offset-4 transition-colors hover:text-ink"
+            >
+              I&apos;ve said what I need, go to my summary →
+            </button>
+          )}
 
           {error && <p className="mt-4 text-sm text-ink">{error}</p>}
         </div>
