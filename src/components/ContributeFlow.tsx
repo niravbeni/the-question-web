@@ -50,6 +50,7 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
   const [busy, setBusy] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
   const finalizedRef = useRef(false);
 
   const fullOpening = `${starter.text.replace(/…\s*$/, "")}… ${continuation.trim()}`;
@@ -219,28 +220,50 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
 
     return (
       <main className="flex min-h-0 flex-1 flex-col">
-        <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col px-5 pt-10 pb-8">
-          {/* Your opening stays visible the whole time, quietly */}
-          <p className="font-display text-lg leading-relaxed text-ink-soft">
-            {fullOpening}
-          </p>
-
-          {/* Earlier answers, compact */}
-          {answered > 0 && (
-            <ul className="mt-4 space-y-1.5">
-              {messages.slice(1).map((m, i) =>
-                m.role === "user" ? (
-                  <li key={i} className="text-sm leading-relaxed text-ink-soft">
-                    <span className="text-muted">You added: </span>
-                    {m.content}
-                  </li>
-                ) : null,
-              )}
-            </ul>
-          )}
+        <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col px-5 pt-8 pb-8">
+          {/* Everything said so far, tucked behind a toggle */}
+          <div className="border-b border-line pb-4">
+            <button
+              type="button"
+              onClick={() => setShowHistory((v) => !v)}
+              className="inline-flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-ink"
+            >
+              {showHistory ? "Hide what you've said" : "See what you've said so far"}
+              <svg
+                viewBox="0 0 16 16"
+                className={`h-3.5 w-3.5 transition-transform ${showHistory ? "rotate-180" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M4 6l4 4 4-4" />
+              </svg>
+            </button>
+            {showHistory && (
+              <div className="mt-4 space-y-3">
+                <p className="font-display text-lg leading-relaxed text-ink-soft">
+                  {fullOpening}
+                </p>
+                {answered > 0 && (
+                  <ul className="space-y-1.5">
+                    {messages.slice(1).map((m, i) =>
+                      m.role === "user" ? (
+                        <li key={i} className="text-sm leading-relaxed text-ink-soft">
+                          <span className="text-muted">You added: </span>
+                          {m.content}
+                        </li>
+                      ) : null,
+                    )}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Current question, big */}
-          <div className="mt-8 border-t border-line pt-8">
+          <div className="mt-8">
             <p className="min-h-[2.5rem] font-display text-2xl leading-snug text-ink sm:text-3xl">
               {currentQuestion || "…"}
             </p>
