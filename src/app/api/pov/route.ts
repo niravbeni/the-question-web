@@ -1,8 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse, after } from "next/server";
-import { getStarter } from "@/content/starters";
 import { maybeAutoRecalibrate, placeNewPov } from "@/lib/analysis";
-import { getPovById, insertPov, setPovEmbedding } from "@/lib/db";
+import { getPovById, getStarterById, insertPov, setPovEmbedding } from "@/lib/db";
 import { embedText } from "@/lib/embeddings";
 import { getOpenAI } from "@/lib/openai";
 import { rateLimit, clientKey } from "@/lib/ratelimit";
@@ -37,7 +36,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
-  const starter = getStarter(body.starterId);
+  const starter = await getStarterById(body.starterId);
   if (!starter) {
     return NextResponse.json({ error: "Unknown sentence starter." }, { status: 400 });
   }

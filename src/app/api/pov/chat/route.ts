@@ -3,7 +3,7 @@ import type OpenAI from "openai";
 import { getOpenAI, CHAT_MODEL } from "@/lib/openai";
 import { buildFacilitatorPrompt, MAX_FOLLOW_UPS } from "@/lib/prompt";
 import { chatTools } from "@/lib/tools";
-import { getStarter } from "@/content/starters";
+import { getStarterById } from "@/lib/db";
 import { rateLimit, clientKey } from "@/lib/ratelimit";
 import type { ChatMessage } from "@/lib/types";
 
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
-  const starter = getStarter(body.starterId);
+  const starter = await getStarterById(body.starterId);
   if (!starter) {
     return NextResponse.json({ error: "Unknown sentence starter." }, { status: 400 });
   }

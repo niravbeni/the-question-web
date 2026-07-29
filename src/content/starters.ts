@@ -1,12 +1,11 @@
 import type { SentenceStarter } from "@/lib/types";
 
 /**
- * The sentence starters shown huge on the landing page. Each one opens the
- * contribution flow: the visitor continues the sentence into a short paragraph,
- * answers up to three follow-up questions, then approves a summary of their
- * point of view. Edit copy freely; keep ids stable once live.
+ * Default sentence starters. They seed the starters table on first run and
+ * are what "Reset starters to defaults" restores in the admin screen; the
+ * database copy is the live source of truth. Keep ids stable once live.
  */
-export const starters: SentenceStarter[] = [
+export const defaultStarters: SentenceStarter[] = [
   {
     id: "worries-me",
     text: "What worries me most about AI in women's health is…",
@@ -53,7 +52,3 @@ export const starters: SentenceStarter[] = [
     sortOrder: 5,
   },
 ];
-
-export function getStarter(id: string): SentenceStarter | undefined {
-  return starters.find((s) => s.id === id);
-}

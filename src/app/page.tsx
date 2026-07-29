@@ -1,15 +1,14 @@
 import Link from "next/link";
 import Header from "@/components/Header";
-import { starters } from "@/content/starters";
 import { siteCopy } from "@/content/copy";
-import { getLandscape } from "@/lib/db";
+import { getLandscape, getStarters } from "@/lib/db";
 import { ensureSeeded } from "@/lib/seed";
 
 export const dynamic = "force-dynamic";
 
 export default async function LandingPage() {
   await ensureSeeded();
-  const landscape = await getLandscape();
+  const [landscape, starters] = await Promise.all([getLandscape(), getStarters()]);
   const sorted = [...starters].sort((a, b) => a.sortOrder - b.sortOrder);
 
   return (

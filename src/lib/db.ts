@@ -1,9 +1,11 @@
 import postgres from "postgres";
+import { defaultStarters } from "@/content/starters";
 import type {
   Landscape,
   LandscapeTopic,
   Pov,
   PovPosition,
+  SentenceStarter,
   Tension,
   Topic,
 } from "@/lib/types";
@@ -78,6 +80,14 @@ async function ensureSchema(): Promise<void> {
         status TEXT NOT NULL DEFAULT 'running',
         pov_count INTEGER NOT NULL DEFAULT 0,
         note TEXT
+      )`;
+      await s`CREATE TABLE IF NOT EXISTS starters (
+        id TEXT PRIMARY KEY,
+        text TEXT NOT NULL,
+        short_label TEXT NOT NULL,
+        hint TEXT NOT NULL DEFAULT '',
+        placeholder TEXT NOT NULL DEFAULT '',
+        sort_order INTEGER NOT NULL DEFAULT 0
       )`;
     })().catch((err) => {
       schemaReady = null; // allow retry on the next request
@@ -322,6 +332,79 @@ export async function upsertPosition(p: PovPosition): Promise<void> {
 
 function clampScore(score: number): number {
   return Math.max(-1, Math.min(1, Number.isFinite(score) ? score : 0));
+}
+
+/* ---------- sentence starters ---------- */
+
+interface StarterRow {
+  id: string;
+  text: string;
+  short_label: string;
+  hint: string;
+  placeholder: string;
+  sort_order: number;
+}
+
+function rowToStarter(r: StarterRow): SentenceStarter {
+  return {
+    id: r.id,
+    text: r.text,
+    shortLabel: r.short_label,
+    hint: r.hint,
+    placeholder: r.placeholder,
+    sortOrder: r.sort_order,
+  };
+}
+
+/**
+ * The hand-written starters in src/content/starters.ts are defaults: they are
+ * inserted once into an empty table, after which the database copy is the
+ * source of truth and can be edited from the admin screen.
+ */
+async function ensureStartersSeeded(s: postgres.Sql): Promise<void> {
+  const rows = await s<Array<{ n: string }>>`SELECT COUNT(*) AS n FROM starters`;
+  if (Number(rows[0].n) > 0) return;
+  for (const st of defaultStarters) {
+    await s`INSERT INTO starters (id, text, short_label, hint, placeholder, sort_order)
+      VALUES (${st.id}, ${st.text}, ${st.shortLabel}, ${st.hint}, ${st.placeholder}, ${st.sortOrder})
+      ON CONFLICT (id) DO NOTHING`;
+  }
+}
+
+export async function getStarters(): Promise<SentenceStarter[]> {
+  const s = await db();
+  await ensureStartersSeeded(s);
+  const rows = await s<StarterRow[]>`SELECT * FROM starters ORDER BY sort_order ASC`;
+  return rows.map(rowToStarter);
+}
+
+export async function getStarterById(id: string): Promise<SentenceStarter | null> {
+  const s = await db();
+  await ensureStartersSeeded(s);
+  const rows = await s<StarterRow[]>`SELECT * FROM starters WHERE id = ${id}`;
+  return rows[0] ? rowToStarter(rows[0]) : null;
+}
+
+export async function updateStarter(
+  id: string,
+  fields: { text: string; shortLabel: string; placeholder: string },
+): Promise<void> {
+  const s = await db();
+  await s`UPDATE starters
+    SET text = ${fields.text}, short_label = ${fields.shortLabel}, placeholder = ${fields.placeholder}
+    WHERE id = ${id}`;
+}
+
+/** Restore all starters to the hand-written defaults. */
+export async function resetStarters(): Promise<void> {
+  const s = await db();
+  await s.begin(async (tx) => {
+    await tx`DELETE FROM starters`;
+    for (const st of defaultStarters) {
+      await tx`INSERT INTO starters (id, text, short_label, hint, placeholder, sort_order)
+        VALUES (${st.id}, ${st.text}, ${st.shortLabel}, ${st.hint}, ${st.placeholder}, ${st.sortOrder})`;
+    }
+  });
 }
 
 /* ---------- calibration runs ---------- */

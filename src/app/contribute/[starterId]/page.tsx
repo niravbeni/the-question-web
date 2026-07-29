@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
 import Header from "@/components/Header";
 import ContributeFlow from "@/components/ContributeFlow";
-import { getStarter } from "@/content/starters";
+import { getStarterById } from "@/lib/db";
+
+export const dynamic = "force-dynamic";
 
 export default async function ContributePage({
   params,
@@ -9,7 +11,7 @@ export default async function ContributePage({
   params: Promise<{ starterId: string }>;
 }) {
   const { starterId } = await params;
-  const starter = getStarter(starterId);
+  const starter = await getStarterById(starterId);
   if (!starter) notFound();
 
   return (

@@ -14,16 +14,29 @@ interface AdminPov {
   isSeed: boolean;
 }
 
+interface AdminStarter {
+  id: string;
+  text: string;
+  shortLabel: string;
+  placeholder: string;
+  sortOrder: number;
+}
+
+type StarterEdit = { text: string; shortLabel: string; placeholder: string };
+
 /**
- * Prototype admin: inspect every stored view, edit its text, delete it,
- * clear test data, or reset the whole database to the seed landscape.
+ * Prototype admin: edit the finish-the-sentence starters, inspect every
+ * stored view, edit its text, delete it, clear test data, or reset the
+ * whole database to the seed landscape.
  */
 export default function AdminView() {
   const [povs, setPovs] = useState<AdminPov[]>([]);
+  const [starters, setStarters] = useState<AdminStarter[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [edits, setEdits] = useState<Record<string, { summary: string; rawInput: string }>>({});
+  const [starterEdits, setStarterEdits] = useState<Record<string, StarterEdit>>({});
 
   // Admin password, kept for the session. The server checks it per request.
   const [adminKey, setAdminKey] = useState<string>(() =>
@@ -46,14 +59,20 @@ export default function AdminView() {
 
   const load = useCallback(async () => {
     try {
-      const res = await authFetch("/api/admin/povs");
-      if (res.status === 401) {
+      const [povRes, starterRes] = await Promise.all([
+        authFetch("/api/admin/povs"),
+        authFetch("/api/admin/starters"),
+      ]);
+      if (povRes.status === 401 || starterRes.status === 401) {
         setLocked(true);
         return;
       }
-      const data = (await res.json()) as { povs: AdminPov[] };
-      setPovs(data.povs);
+      const povData = (await povRes.json()) as { povs: AdminPov[] };
+      const starterData = (await starterRes.json()) as { starters: AdminStarter[] };
+      setPovs(povData.povs);
+      setStarters(starterData.starters);
       setEdits({});
+      setStarterEdits({});
       setLocked(false);
     } finally {
       setLoading(false);
@@ -98,6 +117,28 @@ export default function AdminView() {
           body: JSON.stringify({ id, summary: e.summary, rawInput: e.rawInput }),
         }),
       "Saved. The view re-embeds and re-places at the next recalibration.",
+    );
+  };
+
+  const saveStarter = (id: string) => {
+    const e = starterEdits[id];
+    if (!e) return;
+    void act(
+      () =>
+        authFetch("/api/admin/starters", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id, ...e }),
+        }),
+      "Starter saved. It shows on the landing page right away.",
+    );
+  };
+
+  const resetStartersToDefaults = () => {
+    if (!confirm("Restore all sentence starters to their defaults?")) return;
+    void act(
+      () => authFetch("/api/admin/starters", { method: "DELETE" }),
+      "Starters restored to defaults.",
     );
   };
 
@@ -191,7 +232,109 @@ export default function AdminView() {
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">
           Prototype admin · not linked from the site
         </p>
-        <h1 className="mt-3 font-display text-3xl text-ink">Stored views</h1>
+
+        {/* Sentence starters */}
+        <h1 className="mt-3 font-display text-3xl text-ink">Sentence starters</h1>
+        <p className="mt-2 text-sm text-ink-soft">
+          These are the finish-the-sentence prompts on the landing page. Edits go
+          live immediately; reset restores the built-in defaults.
+        </p>
+        {!loading && (
+          <>
+            <ul className="mt-6 space-y-4">
+              {starters.map((st) => {
+                const edit = starterEdits[st.id] ?? {
+                  text: st.text,
+                  shortLabel: st.shortLabel,
+                  placeholder: st.placeholder,
+                };
+                const dirty =
+                  edit.text !== st.text ||
+                  edit.shortLabel !== st.shortLabel ||
+                  edit.placeholder !== st.placeholder;
+                return (
+                  <li key={st.id} className="rounded-[12px] border border-line p-4">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] uppercase tracking-wide text-muted">
+                      <span>{st.id}</span>
+                    </div>
+
+                    <label className="mt-3 block text-[11px] font-medium uppercase tracking-wide text-muted">
+                      Sentence
+                    </label>
+                    <textarea
+                      value={edit.text}
+                      onChange={(e) =>
+                        setStarterEdits((prev) => ({
+                          ...prev,
+                          [st.id]: { ...edit, text: e.target.value },
+                        }))
+                      }
+                      rows={2}
+                      className="mt-1 w-full resize-none rounded-[8px] border border-line bg-paper p-3 text-sm leading-relaxed text-ink focus:border-ink/40"
+                    />
+
+                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                      <div>
+                        <label className="block text-[11px] font-medium uppercase tracking-wide text-muted">
+                          Short label
+                        </label>
+                        <input
+                          value={edit.shortLabel}
+                          onChange={(e) =>
+                            setStarterEdits((prev) => ({
+                              ...prev,
+                              [st.id]: { ...edit, shortLabel: e.target.value },
+                            }))
+                          }
+                          className="mt-1 w-full rounded-[8px] border border-line bg-paper p-3 text-sm text-ink focus:border-ink/40"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-medium uppercase tracking-wide text-muted">
+                          Placeholder (shown in the empty text box)
+                        </label>
+                        <input
+                          value={edit.placeholder}
+                          onChange={(e) =>
+                            setStarterEdits((prev) => ({
+                              ...prev,
+                              [st.id]: { ...edit, placeholder: e.target.value },
+                            }))
+                          }
+                          className="mt-1 w-full rounded-[8px] border border-line bg-paper p-3 text-sm text-ink focus:border-ink/40"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mt-3">
+                      <button
+                        onClick={() => saveStarter(st.id)}
+                        disabled={busy || !dirty}
+                        className="rounded-full bg-ink px-4 py-1.5 text-xs font-medium text-paper hover:bg-ink/85 disabled:opacity-30"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="mt-4">
+              <button
+                onClick={resetStartersToDefaults}
+                disabled={busy}
+                className="rounded-full border border-line px-4 py-2 text-xs font-medium text-ink-soft transition-colors hover:border-ink/40 hover:text-ink disabled:opacity-40"
+              >
+                Reset starters to defaults
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* Stored views */}
+        <h1 className="mt-14 border-t border-line pt-10 font-display text-3xl text-ink">
+          Stored views
+        </h1>
         <p className="mt-2 text-sm text-ink-soft">
           {povs.length} total · {testCount} from testing · {povs.length - testCount} seed
         </p>
