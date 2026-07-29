@@ -27,7 +27,7 @@ export default function VisualisationsView({ landscape }: { landscape: Landscape
 
   return (
     <main className="flex-1">
-      <div className="mx-auto max-w-5xl px-5 py-14 sm:py-18">
+      <div className="mx-auto max-w-6xl px-5 py-14 sm:py-18">
         <h1 className="max-w-3xl font-display text-3xl leading-tight text-ink sm:text-5xl">
           The landscape in 3D.
         </h1>

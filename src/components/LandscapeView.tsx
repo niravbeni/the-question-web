@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { getMyPovIds } from "@/lib/mine";
 import type { Landscape, LandscapePoint, LandscapeTension } from "@/lib/types";
 
 /**
- * The landscape, one topic at a time: a selector across the top, the active
- * topic's tensions stacked below. Each tension is a single clean axis: two
- * ideas flanking a line, every voice a dot between them. Hover or tap a dot
- * to read the view; dots from this browser are marked "you".
+ * The landscape as a topic carousel: one topic per slide, its tensions
+ * stacked inside. Arrows, dots, swipe, and arrow keys move between topics.
+ * Each tension is a single clean axis: two ideas flanking a line, every
+ * voice a dot between them. Hover or tap a dot to read the view; dots from
+ * this browser are marked "you".
  */
 export default function LandscapeView({
   landscape,
@@ -24,76 +25,138 @@ export default function LandscapeView({
     setMyIds(getMyPovIds());
   }, []);
 
-  const focusTopicId = useMemo(() => {
-    if (!focusPovId) return null;
-    for (const topic of landscape.topics) {
-      for (const tension of topic.tensions) {
-        if (tension.points.some((p) => p.povId === focusPovId)) return topic.id;
-      }
-    }
-    return null;
-  }, [landscape, focusPovId]);
+  const topics = landscape.topics;
 
-  const [activeId, setActiveId] = useState<string | null>(
-    focusTopicId ?? landscape.topics[0]?.id ?? null,
-  );
-  const active =
-    landscape.topics.find((t) => t.id === activeId) ?? landscape.topics[0];
+  const focusTopicIndex = useMemo(() => {
+    if (!focusPovId) return 0;
+    const i = topics.findIndex((topic) =>
+      topic.tensions.some((t) => t.points.some((p) => p.povId === focusPovId)),
+    );
+    return i === -1 ? 0 : i;
+  }, [topics, focusPovId]);
+
+  const [index, setIndex] = useState(focusTopicIndex);
+  const count = topics.length;
+  const go = (i: number) => setIndex(Math.max(0, Math.min(count - 1, i)));
+
+  // Arrow keys move between topics.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") setIndex((i) => Math.max(0, i - 1));
+      if (e.key === "ArrowRight") setIndex((i) => Math.min(count - 1, i + 1));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [count]);
+
+  // Basic swipe support.
+  const touchX = useRef<number | null>(null);
+
+  const arrowClass = (disabled: boolean) =>
+    "flex h-10 w-10 items-center justify-center rounded-full border text-lg transition-colors " +
+    (disabled
+      ? "border-line text-muted/50"
+      : "border-line text-ink hover:border-ink/40");
 
   return (
     <main className="flex-1">
-      <div className="mx-auto max-w-5xl px-5 py-14 sm:py-18">
+      <div className="mx-auto max-w-6xl px-5 py-14 sm:py-18">
         {/* Heading */}
         <h1 className="max-w-3xl font-display text-3xl leading-tight text-ink sm:text-5xl">
           Where people stand on women&apos;s health and AI.
         </h1>
 
-        {/* Topic selector */}
-        <div className="mt-10 flex flex-wrap gap-2">
-          {landscape.topics.map((topic) => {
-            const isActive = topic.id === active?.id;
-            return (
-              <button
-                key={topic.id}
-                onClick={() => setActiveId(topic.id)}
-                className={
-                  isActive
-                    ? "rounded-full bg-ink px-4 py-2 text-sm font-medium text-paper"
-                    : "rounded-full border border-line px-4 py-2 text-sm font-medium text-ink-soft transition-colors hover:border-ink/40 hover:text-ink"
-                }
-              >
-                {topic.label}
-                <span
-                  className={isActive ? "ml-2 text-paper/60" : "ml-2 text-muted"}
-                >
-                  {topic.voiceCount}
-                </span>
-              </button>
-            );
-          })}
+        {/* Carousel controls */}
+        <div className="mt-12 flex items-center justify-between border-b border-line pb-4">
+          <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">
+            Topic {index + 1} of {count}
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => go(index - 1)}
+              disabled={index === 0}
+              aria-label="Previous topic"
+              className={arrowClass(index === 0)}
+            >
+              ←
+            </button>
+            <button
+              onClick={() => go(index + 1)}
+              disabled={index === count - 1}
+              aria-label="Next topic"
+              className={arrowClass(index === count - 1)}
+            >
+              →
+            </button>
+          </div>
         </div>
 
-        {/* Active topic */}
-        {active && (
-          <section key={active.id} className="mt-14">
-            <p className="max-w-3xl text-sm leading-relaxed text-ink-soft">
-              {active.summary}
-            </p>
-            <div className="mt-12 space-y-14">
-              {active.tensions.map((tension) => (
-                <TensionAxis
-                  key={tension.id}
-                  tension={tension}
-                  myIds={myIds}
-                  focusPovId={focusPovId}
-                />
-              ))}
-            </div>
-          </section>
-        )}
+        {/* Sliding topics */}
+        <div
+          className="overflow-hidden"
+          onTouchStart={(e) => {
+            touchX.current = e.touches[0].clientX;
+          }}
+          onTouchEnd={(e) => {
+            if (touchX.current === null) return;
+            const dx = e.changedTouches[0].clientX - touchX.current;
+            touchX.current = null;
+            if (Math.abs(dx) > 48) go(index + (dx < 0 ? 1 : -1));
+          }}
+        >
+          <div
+            className="flex items-start transition-transform duration-500 ease-out"
+            style={{ transform: `translateX(-${index * 100}%)` }}
+          >
+            {topics.map((topic, i) => (
+              <section
+                key={topic.id}
+                inert={i !== index}
+                aria-hidden={i !== index}
+                className={
+                  "w-full shrink-0 pt-10 transition-opacity duration-500 " +
+                  (i === index ? "opacity-100" : "opacity-0")
+                }
+              >
+                <h2 className="font-display text-2xl leading-snug text-ink sm:text-3xl">
+                  {topic.label}
+                </h2>
+                <p className="mt-3 max-w-3xl text-sm leading-relaxed text-ink-soft">
+                  {topic.summary}
+                </p>
+                <div className="mt-12 space-y-14">
+                  {topic.tensions.map((tension) => (
+                    <TensionAxis
+                      key={tension.id}
+                      tension={tension}
+                      myIds={myIds}
+                      focusPovId={focusPovId}
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        </div>
+
+        {/* Dots */}
+        <div className="mt-10 flex justify-center gap-2">
+          {topics.map((topic, i) => (
+            <button
+              key={topic.id}
+              onClick={() => go(i)}
+              aria-label={`Go to topic: ${topic.label}`}
+              className={
+                i === index
+                  ? "h-2 w-6 rounded-full bg-ink transition-all duration-300"
+                  : "h-2 w-2 rounded-full bg-ink/20 transition-all duration-300 hover:bg-ink/40"
+              }
+            />
+          ))}
+        </div>
 
         {/* Footer actions */}
-        <div className="mt-16">
+        <div className="mt-14 text-center">
           <Link
             href="/#starters"
             className="inline-block rounded-full bg-ink px-6 py-3 text-sm font-medium text-paper hover:bg-ink/85"
