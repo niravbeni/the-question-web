@@ -82,6 +82,9 @@ export default async function LandingPage() {
             <h2 className="font-display text-2xl text-ink">
               {siteCopy.landscapePreview.heading}
             </h2>
+            <p className="mt-2 text-sm leading-relaxed text-ink-soft">
+              {siteCopy.landscapePreview.tagline}
+            </p>
             <ul className="mt-8 grid gap-3 sm:grid-cols-2">
               {landscape.topics.map((topic) => (
                 <li
