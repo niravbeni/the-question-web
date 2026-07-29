@@ -151,7 +151,7 @@ export default function LandscapeView({
                 <h2 className="pt-8 text-center font-display text-2xl leading-snug text-ink sm:pt-10 sm:text-3xl">
                   {topic.label}
                 </h2>
-                <div className="flex min-h-0 flex-1 flex-col justify-around gap-8 py-8">
+                <div className="flex min-h-0 flex-1 flex-col justify-around gap-8 pt-16 pb-6 sm:pt-20">
                   {topic.tensions.map((tension) => (
                     <TensionAxis
                       key={tension.id}
