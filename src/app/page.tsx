@@ -70,7 +70,7 @@ export default async function LandingPage() {
         </section>
 
         {/* Landscape preview */}
-        <section className="border-b border-line">
+        <section>
           <div className="mx-auto max-w-6xl px-5 py-16">
             <h2 className="font-display text-2xl text-ink">
               {siteCopy.landscapePreview.heading}
@@ -94,28 +94,6 @@ export default async function LandingPage() {
           </div>
         </section>
 
-        {/* Closing invitation */}
-        <section>
-          <div className="mx-auto max-w-6xl px-5 py-20 text-center">
-            <h2 className="mx-auto max-w-2xl font-display text-2xl text-ink sm:text-3xl">
-              {siteCopy.closing.heading}
-            </h2>
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <Link
-                href="/#starters"
-                className="rounded-full bg-ink px-6 py-3 text-sm font-medium text-paper hover:bg-ink/85"
-              >
-                {siteCopy.closing.primaryCta}
-              </Link>
-              <Link
-                href="/landscape"
-                className="rounded-full border border-line px-6 py-3 text-sm font-medium text-ink hover:border-ink/40"
-              >
-                {siteCopy.closing.secondaryCta}
-              </Link>
-            </div>
-          </div>
-        </section>
       </main>
 
       <footer className="border-t border-line">

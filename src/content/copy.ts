@@ -25,12 +25,6 @@ export const siteCopy = {
     cta: "Open the landscape",
   },
 
-  closing: {
-    heading: "The landscape is only as honest as the voices in it",
-    primaryCta: "Share your view",
-    secondaryCta: "See the landscape",
-  },
-
   about: {
     heading: "About this project",
     body: [
