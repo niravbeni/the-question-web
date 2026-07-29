@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { getMyPovIds } from "@/lib/mine";
+import { useMyPovIds } from "@/lib/mine";
 import type { Landscape } from "@/lib/types";
 
 // The 3D space view pulls in three.js: load it only on this page.
@@ -19,11 +18,7 @@ const SpaceView = dynamic(() => import("./SpaceView"), {
 
 /** Standalone 3D visualisation of the whole landscape, off the main flow. */
 export default function VisualisationsView({ landscape }: { landscape: Landscape }) {
-  const [myIds, setMyIds] = useState<string[]>([]);
-
-  useEffect(() => {
-    setMyIds(getMyPovIds());
-  }, []);
+  const myIds = useMyPovIds();
 
   return (
     <main className="flex-1">

@@ -38,6 +38,16 @@ export interface Topic {
   sortOrder: number;
 }
 
+/**
+ * What the voices in each third of a tension axis hold in common, written by
+ * the analysis model during recalibration. Null where nobody sits there yet.
+ */
+export interface TensionSections {
+  left: string | null;
+  center: string | null;
+  right: string | null;
+}
+
 /** A creative tension: two opposing pulls that both live inside one topic. */
 export interface Tension {
   id: string;
@@ -47,6 +57,7 @@ export interface Tension {
   /** One-sentence framing of what is genuinely at stake between the poles. */
   question: string;
   sortOrder: number;
+  sections: TensionSections;
 }
 
 /** Where one point of view sits on one tension axis. -1 = fully pole A, 1 = fully pole B. */
@@ -70,6 +81,7 @@ export interface LandscapeTension {
   poleA: string;
   poleB: string;
   question: string;
+  sections: TensionSections;
   points: LandscapePoint[];
 }
 
@@ -81,6 +93,19 @@ export interface LandscapeTopic {
   tensions: LandscapeTension[];
 }
 
+/**
+ * One voice placed in the whole landscape rather than on a single axis.
+ * `weights` runs parallel to `Landscape.topics` and sums to 1: how strongly
+ * this view pulls toward each topic, so it can be positioned inside the
+ * spider chart instead of sitting on one corner.
+ */
+export interface SpiderPoint {
+  povId: string;
+  summary: string;
+  topicId: string;
+  weights: number[];
+}
+
 export interface Landscape {
   /** When the landscape was last recalibrated; null before the first run. */
   calibratedAt: string | null;
@@ -88,6 +113,8 @@ export interface Landscape {
   /** Voices that arrived after the last recalibration and have no topic yet. */
   unplacedCount: number;
   topics: LandscapeTopic[];
+  /** Every placed voice, positioned across all topics for the spider chart. */
+  spiderPoints: SpiderPoint[];
 }
 
 /* ---------- Contribution chat protocol ---------- */
