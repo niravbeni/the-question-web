@@ -15,9 +15,11 @@ import type { Landscape, LandscapePoint, LandscapeTension } from "@/lib/types";
 export default function LandscapeView({
   landscape,
   focusPovId,
+  initialTopic = null,
 }: {
   landscape: Landscape;
   focusPovId: string | null;
+  initialTopic?: number | null;
 }) {
   const [myIds, setMyIds] = useState<string[]>([]);
 
@@ -28,12 +30,17 @@ export default function LandscapeView({
   const topics = landscape.topics;
 
   const focusTopicIndex = useMemo(() => {
-    if (!focusPovId) return 0;
-    const i = topics.findIndex((topic) =>
-      topic.tensions.some((t) => t.points.some((p) => p.povId === focusPovId)),
-    );
-    return i === -1 ? 0 : i;
-  }, [topics, focusPovId]);
+    if (focusPovId) {
+      const i = topics.findIndex((topic) =>
+        topic.tensions.some((t) => t.points.some((p) => p.povId === focusPovId)),
+      );
+      if (i !== -1) return i;
+    }
+    if (initialTopic !== null) {
+      return Math.max(0, Math.min(topics.length - 1, initialTopic));
+    }
+    return 0;
+  }, [topics, focusPovId, initialTopic]);
 
   const [index, setIndex] = useState(focusTopicIndex);
   const count = topics.length;

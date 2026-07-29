@@ -75,33 +75,34 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* Screen 3: landscape preview, footer pinned to its bottom */}
-      <section className="flex min-h-dvh snap-start flex-col">
-        <div className="flex flex-1 flex-col justify-center">
-          <div className="mx-auto w-full max-w-6xl px-5">
-            <h2 className="font-display text-2xl text-ink">
-              {siteCopy.landscapePreview.heading}
-            </h2>
-            <ul className="mt-8 grid gap-3 sm:grid-cols-2">
-              {landscape.topics.map((topic) => (
-                <li
-                  key={topic.id}
-                  className="rounded-[12px] border border-line p-5"
+      {/* Screen 3: the landscape topics, rows folding down like the starters */}
+      <section className="flex h-dvh snap-start flex-col pt-16">
+        <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-5">
+          <h2 className="py-6 font-display text-2xl text-ink">
+            {siteCopy.landscapePreview.heading}
+          </h2>
+          <div className="flex flex-1 flex-col divide-y divide-line border-t border-line">
+            {landscape.topics.map((topic, i) => (
+              <Link
+                key={topic.id}
+                href={`/landscape?topic=${i}`}
+                className="group flex flex-1 items-center justify-between gap-6 transition-colors hover:bg-paper-2/60"
+              >
+                <span className="max-w-4xl font-display text-2xl leading-snug text-ink sm:text-4xl">
+                  {topic.label}
+                </span>
+                <span
+                  aria-hidden
+                  className="shrink-0 text-2xl text-muted transition-transform group-hover:translate-x-1 group-hover:text-ink sm:text-3xl"
                 >
-                  <h3 className="font-display text-base text-ink">{topic.label}</h3>
-                </li>
-              ))}
-            </ul>
-            <Link
-              href="/landscape"
-              className="mt-8 inline-block rounded-full border border-line px-6 py-3 text-sm font-medium text-ink hover:border-ink/40"
-            >
-              {siteCopy.landscapePreview.cta}
-            </Link>
+                  →
+                </span>
+              </Link>
+            ))}
           </div>
         </div>
         <footer className="border-t border-line">
-          <div className="mx-auto max-w-6xl px-5 py-8 text-xs text-muted">
+          <div className="mx-auto max-w-6xl px-5 py-6 text-xs text-muted">
             <span>
               {siteCopy.projectTitle} · {siteCopy.projectSubtitle}
             </span>
