@@ -107,14 +107,21 @@ export default function LandscapeView({
   return (
     <main className="min-h-0 flex-1">
       <div className="mx-auto flex h-full max-w-6xl flex-col px-5">
-        {/* Top bar: where you are, and the way in */}
-        <div className="flex items-center justify-between border-b border-line py-4">
-          <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">
+        {/* Top bar: way back, where you are, and the way in */}
+        <div className="grid grid-cols-3 items-center border-b border-line py-4">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 justify-self-start text-sm font-medium text-ink-soft transition-colors hover:text-ink"
+          >
+            {chevron("left")}
+            Back
+          </Link>
+          <p className="justify-self-center text-xs font-medium uppercase tracking-[0.14em] text-muted">
             Topic {index + 1} of {count}
           </p>
           <Link
             href="/#starters"
-            className="rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-paper hover:bg-ink/85"
+            className="justify-self-end rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-paper hover:bg-ink/85"
           >
             Add your view
           </Link>
