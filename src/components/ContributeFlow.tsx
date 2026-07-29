@@ -194,7 +194,7 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
             rows={5}
             className="mt-8 w-full resize-none rounded-[12px] border border-line bg-paper p-5 font-display text-xl leading-relaxed text-ink placeholder:text-muted focus:border-ink/40 sm:text-2xl"
           />
-          <div className="mt-8 inline-flex flex-col items-end">
+          <div className="mt-8 flex items-center gap-4">
             <button
               onClick={startChat}
               disabled={!continuation.trim()}
@@ -202,11 +202,7 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
             >
               Continue →
             </button>
-            {continuation.trim() && (
-              <div className="mt-2">
-                <EnterHint />
-              </div>
-            )}
+            {continuation.trim() && <EnterHint />}
           </div>
         </div>
       </main>
@@ -265,8 +261,8 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
               disabled={busy}
               className="min-h-24 w-full flex-1 resize-none rounded-[12px] border border-line bg-paper p-4 text-base leading-relaxed text-ink placeholder:text-muted focus:border-ink/40 disabled:opacity-60"
             />
-            <div className="mt-4 flex items-start justify-between gap-4">
-              <div className="inline-flex flex-col items-end">
+            <div className="mt-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
                 <button
                   type="submit"
                   disabled={busy || !answer.trim()}
@@ -274,11 +270,7 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
                 >
                   {busy ? "Listening…" : "Send"}
                 </button>
-                {!busy && answer.trim() && (
-                  <div className="mt-2">
-                    <EnterHint />
-                  </div>
-                )}
+                {!busy && answer.trim() && <EnterHint />}
               </div>
               {!busy && (
                 <button
@@ -318,7 +310,7 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
           <p className="mt-5 max-w-2xl text-xs leading-relaxed text-muted">
             {siteCopy.consent.text}
           </p>
-          <div className="mt-6 inline-flex flex-col items-end">
+          <div className="mt-6 flex items-center gap-4">
             <button
               onClick={publish}
               disabled={publishing || !summary.trim()}
@@ -326,11 +318,7 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
             >
               {publishing ? "Publishing…" : siteCopy.consent.publishButton}
             </button>
-            {!publishing && summary.trim() && (
-              <div className="mt-2">
-                <EnterHint />
-              </div>
-            )}
+            {!publishing && summary.trim() && <EnterHint />}
           </div>
           {error && <p className="mt-4 text-sm text-ink">{error}</p>}
         </div>
