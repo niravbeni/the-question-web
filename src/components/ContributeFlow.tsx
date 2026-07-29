@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { siteCopy } from "@/content/copy";
 import { addMyPovId } from "@/lib/mine";
@@ -15,6 +16,26 @@ function EnterHint() {
       press <span className="font-medium text-ink">Enter</span>
       <span aria-hidden>↵</span>
     </span>
+  );
+}
+
+const backClasses =
+  "inline-flex items-center gap-2 text-sm text-muted transition-colors hover:text-ink disabled:opacity-40";
+
+function BackChevron() {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M9.5 3.5L5 8l4.5 4.5" />
+    </svg>
   );
 }
 
@@ -203,8 +224,12 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
   if (phase === "write") {
     return (
       <main className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-4xl px-5 py-16 sm:py-24">
-          <h1 className="font-display text-3xl leading-snug text-ink sm:text-5xl">
+        <div className="mx-auto max-w-4xl px-5 py-10 sm:py-14">
+          <Link href="/#starters" className={backClasses}>
+            <BackChevron />
+            Back
+          </Link>
+          <h1 className="mt-6 font-display text-3xl leading-snug text-ink sm:text-5xl">
             {starter.text}
           </h1>
           <textarea
@@ -249,20 +274,9 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
             type="button"
             onClick={goBack}
             disabled={busy}
-            className="inline-flex items-center gap-2 text-sm text-muted transition-colors hover:text-ink disabled:opacity-40"
+            className={backClasses}
           >
-            <svg
-              viewBox="0 0 16 16"
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden
-            >
-              <path d="M9.5 3.5L5 8l4.5 4.5" />
-            </svg>
+            <BackChevron />
             Back
           </button>
 
