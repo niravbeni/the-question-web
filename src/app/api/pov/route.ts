@@ -43,15 +43,15 @@ export async function POST(req: Request) {
   }
   const rawInput = (body.rawInput ?? "").trim();
   const summary = (body.summary ?? "").trim();
-  if (rawInput.length < 20 || rawInput.length > 4000) {
+  if (!rawInput || rawInput.length > 4000) {
     return NextResponse.json(
-      { error: "Your opening should be at least a couple of sentences." },
+      { error: "Please write something before publishing." },
       { status: 400 },
     );
   }
-  if (summary.length < 20 || summary.length > 800) {
+  if (!summary || summary.length > 800) {
     return NextResponse.json(
-      { error: "The summary should be one to three sentences." },
+      { error: "Please add a short summary before publishing." },
       { status: 400 },
     );
   }

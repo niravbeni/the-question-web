@@ -19,9 +19,6 @@ export default async function LandingPage() {
         {/* Hero */}
         <section className="border-b border-line">
           <div className="mx-auto max-w-6xl px-5 py-20 sm:py-28">
-            <p className="mb-5 text-xs font-medium uppercase tracking-[0.14em] text-muted">
-              {siteCopy.hero.kicker}
-            </p>
             <h1 className="max-w-4xl font-display text-5xl leading-[1.05] text-ink sm:text-7xl">
               {siteCopy.hero.headline}
             </h1>
@@ -77,25 +74,16 @@ export default async function LandingPage() {
         {/* Landscape preview */}
         <section className="border-b border-line">
           <div className="mx-auto max-w-6xl px-5 py-16">
-            <div className="flex flex-wrap items-baseline justify-between gap-3">
-              <h2 className="font-display text-2xl text-ink">
-                {siteCopy.landscapePreview.heading}
-              </h2>
-              <p className="text-sm text-muted">
-                {landscape.totalVoices} voices · {landscape.topics.length} topics ·{" "}
-                {landscape.topics.reduce((s, t) => s + t.tensions.length, 0)} tensions
-              </p>
-            </div>
+            <h2 className="font-display text-2xl text-ink">
+              {siteCopy.landscapePreview.heading}
+            </h2>
             <ul className="mt-8 grid gap-3 sm:grid-cols-2">
               {landscape.topics.map((topic) => (
                 <li
                   key={topic.id}
-                  className="flex items-baseline justify-between gap-4 rounded-[12px] border border-line p-5"
+                  className="rounded-[12px] border border-line p-5"
                 >
                   <h3 className="font-display text-base text-ink">{topic.label}</h3>
-                  <span className="shrink-0 text-xs text-muted">
-                    {topic.voiceCount} {topic.voiceCount === 1 ? "voice" : "voices"}
-                  </span>
                 </li>
               ))}
             </ul>

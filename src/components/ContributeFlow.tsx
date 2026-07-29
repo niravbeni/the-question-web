@@ -7,7 +7,6 @@ import { addMyPovId } from "@/lib/mine";
 import type { ChatMessage, SentenceStarter } from "@/lib/types";
 
 const MAX_QUESTIONS = 3;
-const MIN_OPENING_CHARS = 40;
 
 type Phase = "write" | "chat" | "review" | "published";
 
@@ -101,7 +100,7 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
   }
 
   function startChat() {
-    if (continuation.trim().length < MIN_OPENING_CHARS) return;
+    if (!continuation.trim()) return;
     const opening: ChatMessage[] = [{ role: "user", content: fullOpening }];
     setMessages(opening);
     setPhase("chat");
@@ -173,7 +172,7 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
           <div className="mt-8 flex items-center gap-4">
             <button
               onClick={startChat}
-              disabled={continuation.trim().length < MIN_OPENING_CHARS}
+              disabled={!continuation.trim()}
               className="rounded-full bg-ink px-7 py-3.5 text-sm font-medium text-paper transition-opacity hover:bg-ink/85 disabled:opacity-40"
             >
               Continue →
@@ -309,7 +308,7 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
           <div className="mt-6 flex flex-wrap items-center gap-4">
             <button
               onClick={publish}
-              disabled={publishing || summary.trim().length < 20}
+              disabled={publishing || !summary.trim()}
               className="rounded-full bg-ink px-7 py-3.5 text-sm font-medium text-paper hover:bg-ink/85 disabled:opacity-40"
             >
               {publishing ? "Publishing…" : siteCopy.consent.publishButton}

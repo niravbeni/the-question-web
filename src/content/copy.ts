@@ -9,7 +9,6 @@ export const siteCopy = {
   projectSubtitle: "An IDEO project",
 
   hero: {
-    kicker: "An IDEO emerging point of view",
     headline: "AI is entering women's health. Say where you stand.",
     paragraph:
       "Finish a sentence in your own words. Three short questions later, your view joins an anonymous landscape of where people stand.",
@@ -37,8 +36,8 @@ export const siteCopy = {
   about: {
     heading: "About this project",
     body: [
-      "Women's Health × AI is an IDEO emerging point of view. It exists to surface where people genuinely stand — not to average their views into consensus.",
-      "Every published point of view is anonymous. Views are clustered into shared topics, and within each topic the system names the creative tensions — a line between two opposing pulls that both have merit. Each voice is placed along those lines, and the whole landscape recalibrates as new voices arrive.",
+      "Women's Health × AI is an IDEO emerging point of view. It exists to surface where people genuinely stand, not to average their views into consensus.",
+      "Every published point of view is anonymous. Views are clustered into shared topics, and within each topic the system names the creative tensions: a line between two opposing pulls that both have merit. Each voice is placed along those lines, and the whole landscape recalibrates as new voices arrive.",
       "The public artifact is never an answer or a diagnosis. It is a picture of the field's real disagreements, drawn precisely enough to work with.",
     ],
   },
