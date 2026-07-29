@@ -107,35 +107,17 @@ export default function LandscapeView({
   return (
     <main className="min-h-0 flex-1">
       <div className="mx-auto flex h-full max-w-6xl flex-col px-5">
-        {/* Carousel controls */}
+        {/* Top bar: where you are, and the way in */}
         <div className="flex items-center justify-between border-b border-line py-4">
           <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">
             Topic {index + 1} of {count}
           </p>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => go(index - 1)}
-              disabled={index === 0}
-              aria-label="Previous topic"
-              className={arrowClass(index === 0)}
-            >
-              {chevron("left")}
-            </button>
-            <button
-              onClick={() => go(index + 1)}
-              disabled={index === count - 1}
-              aria-label="Next topic"
-              className={arrowClass(index === count - 1)}
-            >
-              {chevron("right")}
-            </button>
-            <Link
-              href="/#starters"
-              className="ml-2 rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-paper hover:bg-ink/85"
-            >
-              Add your view
-            </Link>
-          </div>
+          <Link
+            href="/#starters"
+            className="rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-paper hover:bg-ink/85"
+          >
+            Add your view
+          </Link>
         </div>
 
         {/* Sliding topics */}
@@ -162,14 +144,14 @@ export default function LandscapeView({
                 inert={i !== index}
                 aria-hidden={i !== index}
                 className={
-                  "flex h-full w-full shrink-0 flex-col overflow-y-auto pt-6 transition-opacity duration-500 " +
+                  "flex h-full w-full shrink-0 flex-col overflow-y-auto transition-opacity duration-500 " +
                   (i === index ? "opacity-100" : "opacity-0")
                 }
               >
-                <h2 className="font-display text-2xl leading-snug text-ink sm:text-3xl">
+                <h2 className="pt-8 text-center font-display text-2xl leading-snug text-ink sm:pt-10 sm:text-3xl">
                   {topic.label}
                 </h2>
-                <div className="flex min-h-0 flex-1 flex-col justify-evenly gap-6 py-4">
+                <div className="flex min-h-0 flex-1 flex-col justify-around gap-8 py-8">
                   {topic.tensions.map((tension) => (
                     <TensionAxis
                       key={tension.id}
@@ -184,20 +166,38 @@ export default function LandscapeView({
           </div>
         </div>
 
-        {/* Dots */}
-        <div className="flex justify-center gap-2 py-4">
-          {topics.map((topic, i) => (
-            <button
-              key={topic.id}
-              onClick={() => go(i)}
-              aria-label={`Go to topic: ${topic.label}`}
-              className={
-                i === index
-                  ? "h-2 w-6 rounded-full bg-ink transition-all duration-300"
-                  : "h-2 w-2 rounded-full bg-ink/20 transition-all duration-300 hover:bg-ink/40"
-              }
-            />
-          ))}
+        {/* Bottom bar: arrows in the corners, dots in the middle */}
+        <div className="flex items-center justify-between py-5">
+          <button
+            onClick={() => go(index - 1)}
+            disabled={index === 0}
+            aria-label="Previous topic"
+            className={arrowClass(index === 0)}
+          >
+            {chevron("left")}
+          </button>
+          <div className="flex gap-2">
+            {topics.map((topic, i) => (
+              <button
+                key={topic.id}
+                onClick={() => go(i)}
+                aria-label={`Go to topic: ${topic.label}`}
+                className={
+                  i === index
+                    ? "h-2 w-6 rounded-full bg-ink transition-all duration-300"
+                    : "h-2 w-2 rounded-full bg-ink/20 transition-all duration-300 hover:bg-ink/40"
+                }
+              />
+            ))}
+          </div>
+          <button
+            onClick={() => go(index + 1)}
+            disabled={index === count - 1}
+            aria-label="Next topic"
+            className={arrowClass(index === count - 1)}
+          >
+            {chevron("right")}
+          </button>
         </div>
       </div>
     </main>
