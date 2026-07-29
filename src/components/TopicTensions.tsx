@@ -53,11 +53,12 @@ export default function TopicTensions({
           {topic.label}
         </h1>
 
-        {/* Tensions, one block each. The inner column is at least as tall as
-            the space available, so a short topic centres its blocks and a long
-            one scrolls instead of spilling over the heading and the footer. */}
+        {/* Tensions, one block each, parted by hairlines. The inner column is
+            at least as tall as the space available, so a short topic centres
+            its blocks and a long one scrolls instead of spilling over the
+            heading and the footer. */}
         <div className="min-h-0 flex-1 overflow-y-auto py-6">
-          <div className="flex min-h-full flex-col justify-center gap-4">
+          <div className="flex min-h-full flex-col justify-center divide-y divide-line">
             {topic.tensions.length === 0 ? (
               <p className="text-center text-sm text-muted">
                 No tensions have emerged in this topic yet.
@@ -177,8 +178,8 @@ function TensionBlock({
         : null;
 
   return (
-    <section className="rounded-[12px] border border-line bg-paper-2/40 px-5 py-4 sm:px-7 sm:py-5">
-      <h2 className="font-display text-base leading-snug text-ink sm:text-lg">
+    <section className="py-6 sm:py-8">
+      <h2 className="font-display text-lg leading-snug text-ink sm:text-xl">
         {tension.question}
       </h2>
 
@@ -192,16 +193,16 @@ function TensionBlock({
         </span>
       </div>
 
-      {/* The line: shaded where the voices gather */}
-      <div className="relative mt-2 h-14">
-        <div className="absolute inset-x-0 top-3 flex h-2.5 overflow-hidden rounded-full bg-paper ring-1 ring-line">
+      {/* The line: quietly shaded where the voices gather */}
+      <div className="relative mt-3 h-16">
+        <div className="absolute inset-x-0 top-5 flex h-1.5 -translate-y-1/2 overflow-hidden rounded-full bg-line/50">
           {heat.map((value, i) => (
             <span
               key={i}
               className="h-full flex-1"
               style={{
                 backgroundColor: `color-mix(in oklab, var(--color-ink) ${Math.round(
-                  8 + value * 62,
+                  5 + value * 40,
                 )}%, transparent)`,
               }}
             />
@@ -220,17 +221,17 @@ function TensionBlock({
               onMouseLeave={() => setShown(null)}
               onClick={() => setShown(active ? null : key)}
               aria-label={sectionLabel[key]}
-              className="absolute top-4 -translate-x-1/2 -translate-y-1/2 p-2"
+              className="absolute top-5 -translate-x-1/2 -translate-y-1/2 p-2"
               style={{ left: `${x}%`, zIndex: 2 }}
             >
               <span
                 className={
-                  "block h-3.5 w-3.5 rounded-full border-2 transition-all duration-150 " +
+                  "block h-3 w-3 rounded-full border transition-all duration-150 " +
                   (empty
-                    ? "border-muted/60 bg-paper"
+                    ? "border-line bg-paper"
                     : active
                       ? "scale-110 border-ink bg-ink"
-                      : "border-ink bg-paper hover:bg-ink/20")
+                      : "border-ink/70 bg-paper hover:bg-ink/15")
                 }
               />
             </button>
@@ -244,7 +245,7 @@ function TensionBlock({
             onMouseLeave={() => setShown(null)}
             onClick={() => setShown(shown === "mine" ? null : "mine")}
             aria-label="Read your view"
-            className="absolute top-6 -translate-x-1/2 p-1"
+            className="absolute top-5 -translate-x-1/2 p-1"
             style={{
               // Inset from the ends so a score at either extreme stays whole
               // instead of being clipped by the edge of the line.
@@ -252,7 +253,7 @@ function TensionBlock({
               zIndex: 3,
             }}
           >
-            <span className="mx-auto block h-2.5 w-px bg-ink/40" />
+            <span className="mx-auto block h-2 w-px bg-ink/40" />
             <span
               className={
                 "mx-auto block h-3 w-3 rounded-full bg-ink ring-4 ring-ink/15 transition-transform duration-150 " +
@@ -267,7 +268,7 @@ function TensionBlock({
       </div>
 
       {/* Reading line for whichever dot is being touched */}
-      <div className="min-h-10 border-t border-line pt-2.5">
+      <div className="min-h-10 pt-1">
         {panel ? (
           <p className="text-sm leading-relaxed text-ink-soft">
             <span className="text-[10px] font-medium uppercase tracking-wider text-muted">
