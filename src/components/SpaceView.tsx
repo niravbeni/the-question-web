@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import { Canvas, useThree } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Line, OrbitControls } from "@react-three/drei";
 import type { Landscape } from "@/lib/types";
 
@@ -308,6 +308,60 @@ function LabelSprite({
   );
 }
 
+/**
+ * Radar-style pulse around the visitor's own dots: an expanding, fading halo
+ * plus a gentle breathing of the dot itself, so "you" reads at a glance.
+ */
+function YouPulse({
+  position,
+  color,
+  dotRadius,
+}: {
+  position: [number, number, number];
+  color: string;
+  dotRadius: number;
+}) {
+  const halo = useRef<THREE.Mesh>(null);
+  const haloMat = useRef<THREE.MeshBasicMaterial>(null);
+  const core = useRef<THREE.Mesh>(null);
+  const t = useRef(0);
+
+  useFrame((_, delta) => {
+    // Cap delta so watchdog-driven frames never jump the animation.
+    t.current += Math.min(delta, 0.1);
+    const cycle = (t.current % 2.2) / 2.2; // 0..1 ping loop
+    if (halo.current && haloMat.current) {
+      const r = dotRadius + cycle * 1.5;
+      halo.current.scale.setScalar(r);
+      haloMat.current.opacity = 0.5 * (1 - cycle) ** 1.5;
+    }
+    if (core.current) {
+      const breathe = 1 + 0.12 * Math.sin(t.current * 3.2);
+      core.current.scale.setScalar(dotRadius * breathe);
+    }
+  });
+
+  return (
+    <group position={position}>
+      {/* Expanding ping. Raycast disabled so it never blocks hovering dots. */}
+      <mesh ref={halo} raycast={() => null} renderOrder={5}>
+        <sphereGeometry args={[1, 20, 20]} />
+        <meshBasicMaterial
+          ref={haloMat}
+          color={color}
+          transparent
+          depthWrite={false}
+        />
+      </mesh>
+      {/* Breathing core drawn over the static dot */}
+      <mesh ref={core} raycast={() => null} renderOrder={6}>
+        <sphereGeometry args={[1, 16, 16]} />
+        <meshBasicMaterial color={color} transparent opacity={0.95} depthWrite={false} />
+      </mesh>
+    </group>
+  );
+}
+
 function SegmentLines({
   segments,
   color,
@@ -605,11 +659,18 @@ export default function SpaceView({
                   <sphereGeometry args={[0.9, 8, 8]} />
                 </mesh>
                 {isMine && (
-                  <LabelSprite
-                    text="you"
-                    position={[point.pos[0], point.pos[1] - 0.7, point.pos[2]]}
-                    height={0.46}
-                  />
+                  <>
+                    <YouPulse
+                      position={point.pos}
+                      color={point.color}
+                      dotRadius={0.34}
+                    />
+                    <LabelSprite
+                      text="you"
+                      position={[point.pos[0], point.pos[1] - 0.7, point.pos[2]]}
+                      height={0.46}
+                    />
+                  </>
                 )}
               </group>
             );
@@ -661,9 +722,6 @@ export default function SpaceView({
           </div>
         </div>
 
-        <p className="pointer-events-none absolute bottom-3 left-4 right-4 text-[10px] uppercase tracking-wider text-[#5a6275]/70">
-          drag to orbit · scroll to zoom · tap a voice to see how it sits between the poles
-        </p>
       </div>
 
       {/* Reading panel, same pattern as the axes view */}
@@ -677,12 +735,7 @@ export default function SpaceView({
             </p>
             <p className="mt-2 text-sm leading-relaxed text-ink-soft">{shown.summary}</p>
           </div>
-        ) : (
-          <p className="pt-4 text-center text-xs text-muted/60">
-            Hover or tap a dot to read a view. Each voice floats between the poles it
-            leans toward.
-          </p>
-        )}
+        ) : null}
       </div>
     </div>
   );

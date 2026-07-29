@@ -18,7 +18,6 @@ export const siteCopy = {
 
   starters: {
     heading: "Finish the sentence",
-    intro: "Pick the line you have the strongest reaction to.",
   },
 
   landscapePreview: {
@@ -28,7 +27,6 @@ export const siteCopy = {
 
   closing: {
     heading: "The landscape is only as honest as the voices in it",
-    note: "Every view is published anonymously.",
     primaryCta: "Share your view",
     secondaryCta: "See the landscape",
   },

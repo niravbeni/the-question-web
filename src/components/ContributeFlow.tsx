@@ -37,7 +37,7 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
   const fullOpening = `${starter.text.replace(/…\s*$/, "")}… ${continuation.trim()}`;
   const questionsAsked = messages.filter((m) => m.role === "assistant").length;
 
-  async function runExchange(nextMessages: ChatMessage[], forceFinalize = false) {
+  async function runExchange(nextMessages: ChatMessage[]) {
     setBusy(true);
     setError(null);
     setStreamingText("");
@@ -47,7 +47,7 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
       const res = await fetch("/api/pov/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ starterId: starter.id, messages: nextMessages, forceFinalize }),
+        body: JSON.stringify({ starterId: starter.id, messages: nextMessages }),
       });
       if (!res.ok || !res.body) {
         const data = await res.json().catch(() => ({}));
@@ -116,11 +116,6 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
     void runExchange(next);
   }
 
-  function skipToSummary() {
-    if (busy) return;
-    void runExchange(messages, true);
-  }
-
   async function publish() {
     setPublishing(true);
     setError(null);
@@ -154,10 +149,7 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
     return (
       <main className="flex-1">
         <div className="mx-auto max-w-4xl px-5 py-16 sm:py-24">
-          <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">
-            Your point of view · {starter.shortLabel}
-          </p>
-          <h1 className="mt-5 font-display text-3xl leading-snug text-ink sm:text-5xl">
+          <h1 className="font-display text-3xl leading-snug text-ink sm:text-5xl">
             {starter.text}
           </h1>
           <textarea
@@ -168,8 +160,7 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
             rows={5}
             className="mt-8 w-full resize-none rounded-[12px] border border-line bg-paper p-5 font-display text-xl leading-relaxed text-ink placeholder:text-muted focus:border-ink/40 sm:text-2xl"
           />
-          <p className="mt-3 text-xs text-muted">{starter.hint}</p>
-          <div className="mt-8 flex items-center gap-4">
+          <div className="mt-8">
             <button
               onClick={startChat}
               disabled={!continuation.trim()}
@@ -177,9 +168,6 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
             >
               Continue →
             </button>
-            <p className="text-xs text-muted">
-              Next: up to {MAX_QUESTIONS} short questions, then you approve a summary.
-            </p>
           </div>
         </div>
       </main>
@@ -252,7 +240,7 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
               disabled={busy}
               className="w-full resize-none rounded-[12px] border border-line bg-paper p-4 text-base leading-relaxed text-ink placeholder:text-muted focus:border-ink/40 disabled:opacity-60"
             />
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="mt-3">
               <button
                 type="submit"
                 disabled={busy || !answer.trim()}
@@ -260,22 +248,10 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
               >
                 {busy ? "Listening…" : "Send"}
               </button>
-              <button
-                type="button"
-                onClick={skipToSummary}
-                disabled={busy}
-                className="rounded-full border border-line px-5 py-2.5 text-xs font-medium text-ink-soft transition-colors hover:border-ink/40 hover:text-ink disabled:opacity-40"
-              >
-                I&apos;ve said what I wanted. Summarize now
-              </button>
             </div>
           </form>
 
           {error && <p className="mt-4 text-sm text-ink">{error}</p>}
-          <p className="mt-8 text-xs text-muted">
-            No personal medical details needed. The conversation stays private;
-            only the summary you approve is published.
-          </p>
         </div>
       </main>
     );
@@ -286,16 +262,9 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
     return (
       <main className="flex-1">
         <div className="mx-auto max-w-4xl px-5 py-12 sm:py-16">
-          <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">
-            Your point of view, in one breath
-          </p>
-          <h1 className="mt-4 font-display text-2xl text-ink sm:text-3xl">
+          <h1 className="font-display text-2xl text-ink sm:text-3xl">
             Does this say what you mean?
           </h1>
-          <p className="mt-2 text-sm text-ink-soft">
-            Edit it freely. These are the exact words that will appear on the
-            landscape, anonymously.
-          </p>
           <textarea
             value={summary}
             onChange={(e) => setSummary(e.target.value)}
@@ -305,20 +274,13 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
           <p className="mt-5 max-w-2xl text-xs leading-relaxed text-muted">
             {siteCopy.consent.text}
           </p>
-          <div className="mt-6 flex flex-wrap items-center gap-4">
+          <div className="mt-6">
             <button
               onClick={publish}
               disabled={publishing || !summary.trim()}
               className="rounded-full bg-ink px-7 py-3.5 text-sm font-medium text-paper hover:bg-ink/85 disabled:opacity-40"
             >
               {publishing ? "Publishing…" : siteCopy.consent.publishButton}
-            </button>
-            <button
-              onClick={() => setPhase("chat")}
-              disabled={publishing}
-              className="rounded-full border border-line px-5 py-2.5 text-xs font-medium text-ink-soft transition-colors hover:border-ink/40 hover:text-ink"
-            >
-              ← Keep talking instead
             </button>
           </div>
           {error && <p className="mt-4 text-sm text-ink">{error}</p>}
@@ -332,9 +294,6 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
     <main className="flex-1">
       <div className="mx-auto max-w-4xl px-5 py-24 text-center">
         <h1 className="font-display text-3xl text-ink">Your view is on the landscape.</h1>
-        <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-ink-soft">
-          Taking you to where you stand among everyone else…
-        </p>
       </div>
     </main>
   );

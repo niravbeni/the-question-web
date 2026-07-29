@@ -2,21 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import { getMyPovIds } from "@/lib/mine";
 import type { Landscape, LandscapePoint, LandscapeTension } from "@/lib/types";
-
-// The 3D space view pulls in three.js: load it only when opened.
-const SpaceView = dynamic(() => import("./SpaceView"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex h-[520px] items-center justify-center rounded-[16px] border border-line bg-[#eef1f7] sm:h-[560px]">
-      <p className="text-xs uppercase tracking-wider text-[#5a6275]/60">
-        Loading the space…
-      </p>
-    </div>
-  ),
-});
 
 /**
  * The landscape, one topic at a time: a selector across the top, the active
@@ -32,7 +19,6 @@ export default function LandscapeView({
   focusPovId: string | null;
 }) {
   const [myIds, setMyIds] = useState<string[]>([]);
-  const [view, setView] = useState<"axes" | "space">("axes");
 
   useEffect(() => {
     setMyIds(getMyPovIds());
@@ -58,104 +44,52 @@ export default function LandscapeView({
     <main className="flex-1">
       <div className="mx-auto max-w-5xl px-5 py-14 sm:py-18">
         {/* Heading */}
-        <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">
-          The landscape
-        </p>
-        <h1 className="mt-4 max-w-3xl font-display text-3xl leading-tight text-ink sm:text-5xl">
+        <h1 className="max-w-3xl font-display text-3xl leading-tight text-ink sm:text-5xl">
           Where people stand on women&apos;s health and AI.
         </h1>
 
-        {/* View toggle: one topic at a time, or the whole space at once */}
-        <div className="mt-10 inline-flex rounded-full border border-line p-1">
-          {(
-            [
-              ["axes", "Tension lines"],
-              ["space", "3D space"],
-            ] as const
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              onClick={() => setView(id)}
-              className={
-                view === id
-                  ? "rounded-full bg-ink px-4 py-1.5 text-xs font-medium text-paper"
-                  : "rounded-full px-4 py-1.5 text-xs font-medium text-muted transition-colors hover:text-ink"
-              }
-            >
-              {label}
-            </button>
-          ))}
+        {/* Topic selector */}
+        <div className="mt-10 flex flex-wrap gap-2">
+          {landscape.topics.map((topic) => {
+            const isActive = topic.id === active?.id;
+            return (
+              <button
+                key={topic.id}
+                onClick={() => setActiveId(topic.id)}
+                className={
+                  isActive
+                    ? "rounded-full bg-ink px-4 py-2 text-sm font-medium text-paper"
+                    : "rounded-full border border-line px-4 py-2 text-sm font-medium text-ink-soft transition-colors hover:border-ink/40 hover:text-ink"
+                }
+              >
+                {topic.label}
+                <span
+                  className={isActive ? "ml-2 text-paper/60" : "ml-2 text-muted"}
+                >
+                  {topic.voiceCount}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
-        {view === "space" ? (
-          <section className="mt-8">
+        {/* Active topic */}
+        {active && (
+          <section key={active.id} className="mt-14">
             <p className="max-w-3xl text-sm leading-relaxed text-ink-soft">
-              The whole conversation as one space. Every theme is a cluster, every
-              tension an axis through it, and every voice floats between the poles it
-              leans toward.
+              {active.summary}
             </p>
-            <div className="mt-6">
-              <SpaceView
-                landscape={landscape}
-                myIds={myIds}
-                focusPovId={focusPovId}
-              />
+            <div className="mt-12 space-y-14">
+              {active.tensions.map((tension) => (
+                <TensionAxis
+                  key={tension.id}
+                  tension={tension}
+                  myIds={myIds}
+                  focusPovId={focusPovId}
+                />
+              ))}
             </div>
           </section>
-        ) : (
-          <>
-            {/* Topic selector */}
-            <div className="mt-8 flex flex-wrap gap-2">
-              {landscape.topics.map((topic) => {
-                const isActive = topic.id === active?.id;
-                return (
-                  <button
-                    key={topic.id}
-                    onClick={() => setActiveId(topic.id)}
-                    className={
-                      isActive
-                        ? "rounded-full bg-ink px-4 py-2 text-sm font-medium text-paper"
-                        : "rounded-full border border-line px-4 py-2 text-sm font-medium text-ink-soft transition-colors hover:border-ink/40 hover:text-ink"
-                    }
-                  >
-                    {topic.label}
-                    <span
-                      className={isActive ? "ml-2 text-paper/60" : "ml-2 text-muted"}
-                    >
-                      {topic.voiceCount}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Active topic */}
-            {active && (
-              <section key={active.id} className="mt-14">
-                <p className="max-w-3xl text-sm leading-relaxed text-ink-soft">
-                  {active.summary}
-                </p>
-                <div className="mt-12 space-y-14">
-                  {active.tensions.map((tension) => (
-                    <TensionAxis
-                      key={tension.id}
-                      tension={tension}
-                      myIds={myIds}
-                      focusPovId={focusPovId}
-                    />
-                  ))}
-                </div>
-              </section>
-            )}
-          </>
-        )}
-
-        {landscape.unplacedCount > 0 && (
-          <p className="mt-16 text-xs text-muted">
-            {landscape.unplacedCount} new{" "}
-            {landscape.unplacedCount === 1 ? "voice joins" : "voices join"} at the next
-            recalibration.
-          </p>
         )}
 
         {/* Footer actions */}
@@ -314,11 +248,7 @@ function TensionAxis({
               {shown.point.summary}
             </p>
           </div>
-        ) : (
-          <p className="pt-4 text-center text-xs text-muted/60">
-            Hover or tap a dot to read a view.
-          </p>
-        )}
+        ) : null}
       </div>
     </div>
   );

@@ -48,7 +48,6 @@ export default async function LandingPage() {
             <h2 className="font-display text-2xl text-ink">
               {siteCopy.starters.heading}
             </h2>
-            <p className="mt-3 text-sm text-ink-soft">{siteCopy.starters.intro}</p>
             <div className="mt-10 divide-y divide-line border-t border-b border-line">
               {sorted.map((starter) => (
                 <Link
@@ -116,17 +115,15 @@ export default async function LandingPage() {
                 {siteCopy.closing.secondaryCta}
               </Link>
             </div>
-            <p className="mt-6 text-xs text-muted">{siteCopy.closing.note}</p>
           </div>
         </section>
       </main>
 
       <footer className="border-t border-line">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-5 py-8 text-xs text-muted sm:flex-row">
+        <div className="mx-auto max-w-6xl px-5 py-8 text-xs text-muted">
           <span>
             {siteCopy.projectTitle} · {siteCopy.projectSubtitle}
           </span>
-          <span>An emerging point of view. Working draft.</span>
         </div>
       </footer>
     </>
