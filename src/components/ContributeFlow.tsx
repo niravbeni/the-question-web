@@ -10,6 +10,26 @@ const MAX_QUESTIONS = 3;
 
 type Phase = "write" | "chat" | "review" | "published";
 
+/** Small "press Enter ↵" affordance shown next to a submit button. */
+function EnterHint() {
+  return (
+    <span className="hidden items-center gap-1 text-xs text-muted sm:inline-flex">
+      press <span className="font-medium text-ink">Enter</span>
+      <span aria-hidden>↵</span>
+    </span>
+  );
+}
+
+/** Submit on Enter, keep Shift+Enter for a newline. */
+function submitOnEnter(submit: () => void) {
+  return (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      submit();
+    }
+  };
+}
+
 interface StreamEvent {
   type: "text" | "finalize" | "error" | "done";
   value?: string;
@@ -156,11 +176,12 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
             autoFocus
             value={continuation}
             onChange={(e) => setContinuation(e.target.value)}
+            onKeyDown={submitOnEnter(startChat)}
             placeholder={starter.placeholder}
             rows={5}
             className="mt-8 w-full resize-none rounded-[12px] border border-line bg-paper p-5 font-display text-xl leading-relaxed text-ink placeholder:text-muted focus:border-ink/40 sm:text-2xl"
           />
-          <div className="mt-8">
+          <div className="mt-8 flex items-center gap-4">
             <button
               onClick={startChat}
               disabled={!continuation.trim()}
@@ -168,6 +189,7 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
             >
               Continue →
             </button>
+            {continuation.trim() && <EnterHint />}
           </div>
         </div>
       </main>
@@ -229,18 +251,13 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
             <textarea
               value={answer}
               onChange={(e) => setAnswer(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  sendAnswer();
-                }
-              }}
+              onKeyDown={submitOnEnter(sendAnswer)}
               placeholder="Answer in your own words…"
               rows={3}
               disabled={busy}
               className="w-full resize-none rounded-[12px] border border-line bg-paper p-4 text-base leading-relaxed text-ink placeholder:text-muted focus:border-ink/40 disabled:opacity-60"
             />
-            <div className="mt-3">
+            <div className="mt-3 flex items-center gap-4">
               <button
                 type="submit"
                 disabled={busy || !answer.trim()}
@@ -248,6 +265,7 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
               >
                 {busy ? "Listening…" : "Send"}
               </button>
+              {!busy && answer.trim() && <EnterHint />}
             </div>
           </form>
 
@@ -268,13 +286,16 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
           <textarea
             value={summary}
             onChange={(e) => setSummary(e.target.value)}
+            onKeyDown={submitOnEnter(() => {
+              if (!publishing && summary.trim()) void publish();
+            })}
             rows={4}
             className="mt-6 w-full resize-none rounded-[12px] border border-line bg-paper p-5 font-display text-xl leading-relaxed text-ink focus:border-ink/40 sm:text-2xl"
           />
           <p className="mt-5 max-w-2xl text-xs leading-relaxed text-muted">
             {siteCopy.consent.text}
           </p>
-          <div className="mt-6">
+          <div className="mt-6 flex items-center gap-4">
             <button
               onClick={publish}
               disabled={publishing || !summary.trim()}
@@ -282,6 +303,7 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
             >
               {publishing ? "Publishing…" : siteCopy.consent.publishButton}
             </button>
+            {!publishing && summary.trim() && <EnterHint />}
           </div>
           {error && <p className="mt-4 text-sm text-ink">{error}</p>}
         </div>
