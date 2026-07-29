@@ -53,6 +53,9 @@ export async function ensureSeeded(): Promise<void> {
           summary: topic.summary,
           sortOrder: topic.sortOrder,
         },
+        // Seed data has no embeddings, so there is no centroid to store and no
+        // section summaries yet; the first recalibration fills both in.
+        centroid: null,
         tensions: topic.tensions.map((t) => ({
           id: t.id,
           topicId: topic.id,
@@ -60,6 +63,7 @@ export async function ensureSeeded(): Promise<void> {
           poleB: t.poleB,
           question: t.question,
           sortOrder: t.sortOrder,
+          sections: { left: null, center: null, right: null },
         })),
         memberPovIds: members.map((p) => p.id),
         positions,

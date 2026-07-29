@@ -15,7 +15,13 @@ import {
   upsertPosition,
   type CalibrationResult,
 } from "@/lib/db";
-import type { Pov, PovPosition, Tension, Topic } from "@/lib/types";
+import type {
+  Pov,
+  PovPosition,
+  Tension,
+  TensionSections,
+  Topic,
+} from "@/lib/types";
 
 /** Minimum published views before a full recalibration makes sense. */
 const MIN_POVS_FOR_CALIBRATION = 8;
@@ -192,41 +198,61 @@ export async function recalibrate(): Promise<RecalibrationSummary> {
       clusters = mergeSmallClusters(vectors, kMeans(vectors, k), 3);
     }
 
-    // 3 + 4. Derive topics/tensions and score members, cluster by cluster.
+    // 3 + 4. Derive topics/tensions and score members. Each cluster costs
+    // several model calls and knows nothing of the others, so they are worked
+    // through together: a full recalibration has to finish inside the time
+    // limit of the route that triggered it.
     const runId = randomUUID();
-    const resultTopics: CalibrationResult["topics"] = [];
+    const built = await Promise.all(
+      clusters.map(async (cluster, c) => {
+        const members = cluster.map((idx) => embedded[idx]);
+        if (members.length === 0) return null;
 
-    for (let c = 0; c < clusters.length; c++) {
-      const members = clusters[c].map((idx) => embedded[idx]);
-      if (members.length === 0) continue;
+        const derived = await deriveTopic(openai, members);
+        if (!derived) return null;
 
-      const derived = await deriveTopic(openai, members);
-      if (!derived) continue;
+        const topicId = `topic-${runId.slice(0, 8)}-${c}`;
+        const topic: Topic = {
+          id: topicId,
+          label: derived.label,
+          summary: derived.summary,
+          sortOrder: c + 1,
+        };
+        const tensions: Tension[] = derived.tensions.map((t, j) => ({
+          id: `${topicId}-tn${j}`,
+          topicId,
+          poleA: t.pole_a,
+          poleB: t.pole_b,
+          question: t.question,
+          sortOrder: j + 1,
+          sections: { left: null, center: null, right: null },
+        }));
 
-      const topicId = `topic-${runId.slice(0, 8)}-${c}`;
-      const topic: Topic = {
-        id: topicId,
-        label: derived.label,
-        summary: derived.summary,
-        sortOrder: c + 1,
-      };
-      const tensions: Tension[] = derived.tensions.map((t, j) => ({
-        id: `${topicId}-tn${j}`,
-        topicId,
-        poleA: t.pole_a,
-        poleB: t.pole_b,
-        question: t.question,
-        sortOrder: j + 1,
-      }));
+        const positions = await scoreMembers(openai, members, tensions);
+        // Now that everyone is scored, describe what each third of every axis
+        // holds in common, so the tension view can be read without hovering.
+        const sections = await Promise.all(
+          tensions.map((tension) =>
+            summarizeSections(openai, members, tension, positions),
+          ),
+        );
+        tensions.forEach((tension, i) => {
+          tension.sections = sections[i];
+        });
 
-      const positions = await scoreMembers(openai, members, tensions);
-      resultTopics.push({
-        topic,
-        tensions,
-        memberPovIds: members.map((m) => m.id),
-        positions,
-      });
-    }
+        return {
+          topic,
+          centroid: meanVector(members.map((m) => m.embedding)),
+          tensions,
+          memberPovIds: members.map((m) => m.id),
+          positions,
+        };
+      }),
+    );
+    // Promise.all keeps cluster order, so topics stay in their sorted order.
+    const resultTopics: CalibrationResult["topics"] = built.filter(
+      (t): t is NonNullable<typeof t> => t !== null,
+    );
 
     if (resultTopics.length === 0) {
       return { ok: false, reason: "The analysis model returned no usable topics." };
@@ -401,6 +427,92 @@ Respond with JSON only: {"positions": [{"index": <view index>, "scores": [<one f
     });
   }
   return out;
+}
+
+/** Score below which a view counts as sitting on the left third of an axis. */
+const SECTION_EDGE = 1 / 3;
+
+/**
+ * Describe what the voices on the left, in the middle, and on the right of one
+ * tension hold in common. Empty thirds come back null so the view can show
+ * that nobody stands there yet.
+ */
+async function summarizeSections(
+  openai: OpenAI,
+  members: Pov[],
+  tension: Tension,
+  positions: PovPosition[],
+): Promise<TensionSections> {
+  const empty: TensionSections = { left: null, center: null, right: null };
+  const scoreByPov = new Map(
+    positions
+      .filter((p) => p.tensionId === tension.id)
+      .map((p) => [p.povId, p.score]),
+  );
+
+  const buckets: Record<keyof TensionSections, string[]> = {
+    left: [],
+    center: [],
+    right: [],
+  };
+  for (const m of members) {
+    const score = scoreByPov.get(m.id);
+    if (score === undefined) continue;
+    const key =
+      score < -SECTION_EDGE ? "left" : score > SECTION_EDGE ? "right" : "center";
+    buckets[key].push(m.summary);
+  }
+  if (buckets.left.length + buckets.center.length + buckets.right.length === 0) {
+    return empty;
+  }
+
+  const block = (label: string, list: string[]) =>
+    list.length === 0
+      ? `${label}: (nobody stands here)`
+      : `${label}:\n${list.map((s) => `- ${s}`).join("\n")}`;
+
+  const prompt = `${ANALYST_ROLE}
+
+Summarize each side of one creative tension.
+
+THE TENSION
+"${tension.poleA}" (left) <-> "${tension.poleB}" (right). At stake: ${tension.question}
+
+${block("LEFT: views committed to " + tension.poleA, buckets.left)}
+
+${block("MIDDLE: views that weigh both sides or are torn", buckets.center)}
+
+${block("RIGHT: views committed to " + tension.poleB, buckets.right)}
+
+For each group that has views, write one sentence of at most 18 words saying what those people actually hold in common, in their spirit, without naming numbers or using the words "left", "middle", or "right". Write it as a claim someone there would recognize, not a description of a category. Use null for any group where nobody stands.
+
+Respond with JSON only: {"left": "..." | null, "center": "..." | null, "right": "..." | null}`;
+
+  const parsed = await jsonCall<Record<string, unknown>>(openai, prompt);
+  if (!parsed) return empty;
+
+  const clean = (value: unknown, hasViews: boolean): string | null =>
+    hasViews && typeof value === "string" && value.trim().length > 0
+      ? value.trim()
+      : null;
+
+  return {
+    left: clean(parsed.left, buckets.left.length > 0),
+    center: clean(parsed.center, buckets.center.length > 0),
+    right: clean(parsed.right, buckets.right.length > 0),
+  };
+}
+
+/** Component-wise mean of the vectors that exist, or null if none do. */
+function meanVector(vectors: Array<number[] | null>): number[] | null {
+  const present = vectors.filter((v): v is number[] => Array.isArray(v) && v.length > 0);
+  if (present.length === 0) return null;
+  const dim = present[0].length;
+  const mean = new Array<number>(dim).fill(0);
+  for (const v of present) {
+    for (let d = 0; d < dim; d++) mean[d] += v[d] ?? 0;
+  }
+  return mean.map((x) => x / present.length);
 }
 
 /** One JSON-mode call to the analysis model, parsed defensively. */

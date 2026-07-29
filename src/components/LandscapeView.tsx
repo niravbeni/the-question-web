@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { getMyPovIds } from "@/lib/mine";
+import { useMyPovIds } from "@/lib/mine";
 import type { Landscape, LandscapePoint, LandscapeTension } from "@/lib/types";
 
 /**
@@ -16,16 +16,15 @@ export default function LandscapeView({
   landscape,
   focusPovId,
   initialTopic = null,
+  switchHref = null,
 }: {
   landscape: Landscape;
   focusPovId: string | null;
   initialTopic?: number | null;
+  /** Where the view switcher in the top bar leads, if this is an alternate. */
+  switchHref?: string | null;
 }) {
-  const [myIds, setMyIds] = useState<string[]>([]);
-
-  useEffect(() => {
-    setMyIds(getMyPovIds());
-  }, []);
+  const myIds = useMyPovIds();
 
   const topics = landscape.topics;
 
@@ -123,9 +122,18 @@ export default function LandscapeView({
             {chevron("left")}
             Back
           </Link>
-          <p className="justify-self-center text-xs font-medium uppercase tracking-[0.14em] text-muted">
-            Topic {index + 1} of {count}
-          </p>
+          {switchHref ? (
+            <Link
+              href={switchHref}
+              className="justify-self-center text-xs font-medium uppercase tracking-[0.14em] text-muted transition-colors hover:text-ink"
+            >
+              Spider view
+            </Link>
+          ) : (
+            <p className="justify-self-center text-xs font-medium uppercase tracking-[0.14em] text-muted">
+              Topic {index + 1} of {count}
+            </p>
+          )}
           <Link
             href="/#starters"
             className="justify-self-end rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-paper hover:bg-ink/85"
