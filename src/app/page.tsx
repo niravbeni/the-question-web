@@ -14,12 +14,18 @@ export default async function LandingPage() {
 
   return (
     // The page is its own scroll container so each screen snaps into place.
-    <div className="h-dvh snap-y snap-mandatory overflow-y-auto scroll-smooth">
+    <div
+      className="h-dvh snap-y snap-mandatory overflow-y-auto scroll-smooth"
+      data-snap-scroll
+    >
       <SnapHashScroll />
 
       {/* Screen 1: hero. Carries the one quiet way back out to the parent site,
           sitting where the header wordmark used to be. */}
-      <section className="relative flex min-h-dvh snap-start flex-col justify-center border-b border-line">
+      <section
+        data-snap-section
+        className="relative flex min-h-dvh snap-start flex-col justify-center border-b border-line"
+      >
         <div className="absolute inset-x-0 top-0">
           <div className="mx-auto max-w-6xl px-5 pt-5">
             <Link
@@ -58,6 +64,7 @@ export default async function LandingPage() {
       {/* Screen 2: sentence starters, full-bleed rows folding down to the screen edge */}
       <section
         id="starters"
+        data-snap-section
         className="flex h-dvh snap-start flex-col border-b border-line pt-6"
       >
         <div className="mx-auto w-full max-w-6xl px-5">

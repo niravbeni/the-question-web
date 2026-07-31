@@ -50,6 +50,7 @@ export default function LandscapePreview({
     <section
       ref={sectionRef}
       id="landscape"
+      data-snap-section
       className="flex h-dvh snap-start flex-col pt-6"
     >
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col px-5">
