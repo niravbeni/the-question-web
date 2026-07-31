@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import SpiderView from "@/components/SpiderView";
+import SpaceSlide from "@/components/SpaceSlide";
 import {
   useCarousel,
   CarouselTrack,
@@ -19,7 +20,7 @@ import type { Landscape } from "@/lib/types";
  * topic's tensions. This screen shares the window with the hero and the
  * sentence starters, so it only claims the arrow keys while it is on view.
  */
-const SLIDES = ["Topics", "Spider chart"] as const;
+const SLIDES = ["Topics", "Spider chart", "3D view"] as const;
 
 export default function LandscapePreview({
   landscape,
@@ -88,6 +89,7 @@ export default function LandscapePreview({
         >
           <TopicTiles landscape={landscape} />
           <SpiderView landscape={landscape} />
+          <SpaceSlide landscape={landscape} active={index === 2} />
         </CarouselTrack>
       </div>
 

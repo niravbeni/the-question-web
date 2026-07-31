@@ -1,17 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Line, OrbitControls } from "@react-three/drei";
+import { OrbitControls } from "@react-three/drei";
 import type { Landscape } from "@/lib/types";
 
 /**
- * The landscape as a 3D scatter plot: a light gridded cube where every voice
- * is a point colored by its theme, tension poles are dark diamonds, and each
- * voice floats at the vector sum of its tension scores. Faint spokes show how
- * each theme branches out to its voices; select a point and weighted lines
- * show how it sits between the poles.
+ * The landscape as a 3D scatter plot: a light gridded cube where each theme is
+ * a cluster, tension poles are dark diamonds at the ends of an axis through
+ * that cluster, and the crowd on each axis is summarised by up to three lean
+ * circles (toward one pole, torn in the middle, toward the other), sized by how
+ * many voices sit there. The visitor's own published views float as small
+ * pulsing "you" dots at the vector sum of their scores. Clicking a cluster's
+ * heading opens that topic's tensions.
  */
 
 /* ---------------- deterministic layout ---------------- */
@@ -45,23 +48,24 @@ function hash01(id: string): number {
   return ((h >>> 0) % 100000) / 100000;
 }
 
-interface PoleLink {
+/** A band of the crowd on one tension axis, drawn as a single sized circle. */
+interface LeanCircle {
+  id: string;
+  topicId: string;
+  color: string;
   pos: [number, number, number];
-  label: string;
-  /** 0..1: how strongly this voice leans toward this pole. */
-  weight: number;
+  radius: number;
+  /** Plain text shown when this circle is hovered or tapped. */
+  text: string;
 }
 
-interface SpacePoint {
+/** One of the visitor's own published views, kept as an individual dot. */
+interface YouPoint {
   povId: string;
-  summary: string;
   topicId: string;
-  topicLabel: string;
+  summary: string;
   color: string;
-  leans: string[];
   pos: [number, number, number];
-  poleLinks: PoleLink[];
-  isSeed: boolean;
 }
 
 interface SpacePole {
@@ -73,6 +77,7 @@ interface SpacePole {
 
 interface SpaceTopic {
   id: string;
+  index: number;
   label: string;
   color: string;
   center: [number, number, number];
@@ -81,19 +86,27 @@ interface SpaceTopic {
 interface SpaceLayout {
   topics: SpaceTopic[];
   poles: SpacePole[];
-  points: SpacePoint[];
+  leanCircles: LeanCircle[];
+  youPoints: YouPoint[];
   /** Flat xyz pairs for the tension axis line segments. */
   axisSegments: Float32Array;
-  /** Flat xyz pairs for the faint theme-to-voice spokes. */
-  spokeSegments: Float32Array;
 }
 
-function buildLayout(landscape: Landscape): SpaceLayout {
+/** A score at or beyond this magnitude counts as leaning to that pole. */
+const LEAN_CUTOFF = 1 / 3;
+
+/** Circle radius grows with the crowd, but gently and within bounds. */
+function bandRadius(count: number): number {
+  return Math.min(1.3, 0.42 + 0.18 * Math.sqrt(count));
+}
+
+function buildLayout(landscape: Landscape, myIds: string[]): SpaceLayout {
+  const mine = new Set(myIds);
   const topics: SpaceTopic[] = [];
   const poles: SpacePole[] = [];
-  const points: SpacePoint[] = [];
+  const leanCircles: LeanCircle[] = [];
+  const youPoints: YouPoint[] = [];
   const axisSegs: number[] = [];
-  const spokeSegs: number[] = [];
 
   const K = landscape.topics.length;
   landscape.topics.forEach((topic, i) => {
@@ -107,7 +120,7 @@ function buildLayout(landscape: Landscape): SpaceLayout {
       y * TOPIC_RADIUS * 0.45,
       Math.sin(theta) * ring * TOPIC_RADIUS,
     ];
-    topics.push({ id: topic.id, label: topic.label, color, center });
+    topics.push({ id: topic.id, index: i, label: topic.label, color, center });
 
     // A topic-specific rotation so tension axes differ between clusters.
     const rot = new THREE.Euler(
@@ -124,8 +137,6 @@ function buildLayout(landscape: Landscape): SpaceLayout {
       base[j % 3].clone().applyEuler(rot).normalize(),
     );
 
-    // Pole markers and the axis line through the cluster.
-    const polePos: Array<{ a: [number, number, number]; b: [number, number, number] }> = [];
     topic.tensions.forEach((tension, j) => {
       const d = dirs[j];
       const a: [number, number, number] = [
@@ -138,67 +149,97 @@ function buildLayout(landscape: Landscape): SpaceLayout {
         center[1] + d.y * AXIS_HALF,
         center[2] + d.z * AXIS_HALF,
       ];
-      polePos.push({ a, b });
       poles.push(
         { id: `${tension.id}-a`, label: tension.poleA, topicId: topic.id, pos: a },
         { id: `${tension.id}-b`, label: tension.poleB, topicId: topic.id, pos: b },
       );
       axisSegs.push(...a, ...b);
+
+      // Bin the crowd into three bands along this axis and summarise each as a
+      // single circle, sized by how many voices sit there and placed at the
+      // band's average lean so distinct tensions never pile onto the centre.
+      const bands: Array<{
+        key: "left" | "center" | "right";
+        text: string | null;
+        pole: string | null;
+        count: number;
+        sum: number;
+      }> = [
+        { key: "left", text: tension.sections.left, pole: tension.poleA, count: 0, sum: 0 },
+        { key: "center", text: tension.sections.center, pole: null, count: 0, sum: 0 },
+        { key: "right", text: tension.sections.right, pole: tension.poleB, count: 0, sum: 0 },
+      ];
+      for (const p of tension.points) {
+        const band =
+          p.score <= -LEAN_CUTOFF ? bands[0] : p.score >= LEAN_CUTOFF ? bands[2] : bands[1];
+        band.count += 1;
+        band.sum += p.score;
+      }
+      for (const band of bands) {
+        if (band.count === 0) continue;
+        const mean = band.sum / band.count;
+        // Center bands average near zero; nudge them off the shared centre a
+        // touch along their own axis so overlapping tensions stay legible.
+        const frac =
+          band.key === "center" ? (mean >= 0 ? 0.14 : -0.14) : mean;
+        leanCircles.push({
+          id: `${tension.id}:${band.key}`,
+          topicId: topic.id,
+          color,
+          pos: [
+            center[0] + d.x * frac * SCORE_REACH,
+            center[1] + d.y * frac * SCORE_REACH,
+            center[2] + d.z * frac * SCORE_REACH,
+          ],
+          radius: bandRadius(band.count),
+          text:
+            band.text ??
+            `${band.count} ${band.count === 1 ? "voice" : "voices"} ${
+              band.pole ? `leaning toward "${band.pole}"` : "weighing both sides"
+            }`,
+        });
+      }
     });
 
-    // Each voice floats at the vector sum of its scores along the axes.
-    const scoresByPov = new Map<string, { summary: string; isSeed: boolean; scores: number[] }>();
+    // The visitor's own views stay individual, at the vector sum of their
+    // scores across this topic's tensions.
+    const scoresByPov = new Map<string, { summary: string; scores: number[] }>();
     topic.tensions.forEach((tension, j) => {
       for (const p of tension.points) {
+        if (!mine.has(p.povId)) continue;
         const entry =
-          scoresByPov.get(p.povId) ??
-          ({ summary: p.summary, isSeed: p.isSeed, scores: [] as number[] });
+          scoresByPov.get(p.povId) ?? { summary: p.summary, scores: [] as number[] };
         entry.scores[j] = p.score;
         scoresByPov.set(p.povId, entry);
       }
     });
     for (const [povId, entry] of scoresByPov) {
       const pos = new THREE.Vector3(...center);
-      const leans: string[] = [];
-      const poleLinks: PoleLink[] = [];
-      topic.tensions.forEach((tension, j) => {
+      topic.tensions.forEach((_, j) => {
         const s = entry.scores[j];
         if (s === undefined) return;
         pos.addScaledVector(dirs[j], s * SCORE_REACH);
-        if (Math.abs(s) >= 0.2) {
-          leans.push(s < 0 ? tension.poleA : tension.poleB);
-        }
-        // Links to both ends of this tension; the leaned-toward end is heavier.
-        poleLinks.push(
-          { pos: polePos[j].a, label: tension.poleA, weight: (1 - s) / 2 },
-          { pos: polePos[j].b, label: tension.poleB, weight: (1 + s) / 2 },
-        );
       });
-      // Small deterministic jitter so identical scores do not overlap.
+      // Small deterministic jitter so two of your views never fully overlap.
       pos.x += (hash01(povId) - 0.5) * 0.9;
       pos.y += (hash01(povId + "y") - 0.5) * 0.9;
       pos.z += (hash01(povId + "z") - 0.5) * 0.9;
-      points.push({
+      youPoints.push({
         povId,
         summary: entry.summary,
         topicId: topic.id,
-        topicLabel: topic.label,
         color,
-        leans,
         pos: [pos.x, pos.y, pos.z],
-        poleLinks,
-        isSeed: entry.isSeed,
       });
-      spokeSegs.push(...center, pos.x, pos.y, pos.z);
     }
   });
 
   return {
     topics,
     poles,
-    points,
+    leanCircles,
+    youPoints,
     axisSegments: new Float32Array(axisSegs),
-    spokeSegments: new Float32Array(spokeSegs),
   };
 }
 
@@ -243,6 +284,9 @@ function LabelSprite({
   backing = true,
   alwaysOnTop = true,
   uppercase = true,
+  onClick,
+  onPointerOver,
+  onPointerOut,
 }: {
   text: string;
   position: [number, number, number];
@@ -251,6 +295,9 @@ function LabelSprite({
   backing?: boolean;
   alwaysOnTop?: boolean;
   uppercase?: boolean;
+  onClick?: (e: { stopPropagation: () => void }) => void;
+  onPointerOver?: (e: { stopPropagation: () => void }) => void;
+  onPointerOut?: () => void;
 }) {
   const { texture, aspect } = useMemo(() => {
     const scale = 4;
@@ -296,6 +343,9 @@ function LabelSprite({
       position={position}
       scale={[height * aspect, height, 1]}
       renderOrder={alwaysOnTop ? 20 : 0}
+      onClick={onClick}
+      onPointerOver={onPointerOver}
+      onPointerOut={onPointerOut}
     >
       <spriteMaterial
         map={texture}
@@ -309,10 +359,11 @@ function LabelSprite({
 }
 
 /**
- * Radar-style pulse around the visitor's own dots: an expanding, fading halo
- * plus a gentle breathing of the dot itself, so "you" reads at a glance.
+ * The visitor's own dot: a small point that breathes gently and stays drawn on
+ * top of everything, so "you" reads at a glance even when it sits inside a
+ * cluster, without ballooning into a big blob.
  */
-function YouPulse({
+function YouDot({
   position,
   color,
   dotRadius,
@@ -321,42 +372,29 @@ function YouPulse({
   color: string;
   dotRadius: number;
 }) {
-  const halo = useRef<THREE.Mesh>(null);
-  const haloMat = useRef<THREE.MeshBasicMaterial>(null);
   const core = useRef<THREE.Mesh>(null);
   const t = useRef(0);
 
   useFrame((_, delta) => {
     // Cap delta so watchdog-driven frames never jump the animation.
     t.current += Math.min(delta, 0.1);
-    const cycle = (t.current % 2.2) / 2.2; // 0..1 ping loop
-    if (halo.current && haloMat.current) {
-      const r = dotRadius + cycle * 1.5;
-      halo.current.scale.setScalar(r);
-      haloMat.current.opacity = 0.5 * (1 - cycle) ** 1.5;
-    }
     if (core.current) {
-      const breathe = 1 + 0.12 * Math.sin(t.current * 3.2);
+      const breathe = 1 + 0.14 * Math.sin(t.current * 3.2);
       core.current.scale.setScalar(dotRadius * breathe);
     }
   });
 
   return (
     <group position={position}>
-      {/* Expanding ping. Raycast disabled so it never blocks hovering dots. */}
-      <mesh ref={halo} raycast={() => null} renderOrder={5}>
-        <sphereGeometry args={[1, 20, 20]} />
-        <meshBasicMaterial
-          ref={haloMat}
-          color={color}
-          transparent
-          depthWrite={false}
-        />
+      {/* A thin ring so the dot still stands out against its cluster color. */}
+      <mesh raycast={() => null} renderOrder={11}>
+        <sphereGeometry args={[dotRadius * 1.5, 18, 18]} />
+        <meshBasicMaterial color="#232a3a" transparent opacity={0.28} depthTest={false} depthWrite={false} />
       </mesh>
-      {/* Breathing core drawn over the static dot */}
-      <mesh ref={core} raycast={() => null} renderOrder={6}>
+      {/* Breathing core, always on top. */}
+      <mesh ref={core} raycast={() => null} renderOrder={12}>
         <sphereGeometry args={[1, 16, 16]} />
-        <meshBasicMaterial color={color} transparent opacity={0.95} depthWrite={false} />
+        <meshBasicMaterial color={color} transparent opacity={1} depthTest={false} depthWrite={false} />
       </mesh>
     </group>
   );
@@ -523,25 +561,47 @@ export default function SpaceView({
   landscape,
   myIds,
   focusPovId,
+  fill = false,
 }: {
   landscape: Landscape;
   myIds: string[];
   focusPovId: string | null;
+  /** When true, fill the parent's height (for a carousel slide) instead of a
+   *  fixed-height box, and float the reading text over the canvas. */
+  fill?: boolean;
 }) {
-  const layout = useMemo(() => buildLayout(landscape), [landscape]);
+  const router = useRouter();
+  const layout = useMemo(() => buildLayout(landscape, myIds), [landscape, myIds]);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [pinnedId, setPinnedId] = useState<string | null>(focusPovId);
   // The plot drifts gently until the visitor takes the wheel.
   const [engaged, setEngaged] = useState(false);
   const shownId = hoveredId ?? pinnedId;
-  const shown = layout.points.find((p) => p.povId === shownId) ?? null;
 
-  // Pole labels only for the active cluster, so the plot stays legible.
+  // Everything hoverable resolves to the same shape: some text to read and the
+  // topic it belongs to (so that topic's pole labels appear).
+  const detail = useMemo(() => {
+    const m = new Map<string, { text: string; topicId: string }>();
+    for (const c of layout.leanCircles) m.set(c.id, { text: c.text, topicId: c.topicId });
+    for (const p of layout.youPoints) m.set(p.povId, { text: p.summary, topicId: p.topicId });
+    return m;
+  }, [layout]);
+  const shown = shownId ? (detail.get(shownId) ?? null) : null;
   const activeTopicId = shown?.topicId ?? null;
 
+  const setCursor = (value: "pointer" | "auto") => {
+    document.body.style.cursor = value;
+  };
+  const openTopic = (index: number) => router.push(`/landscape?topic=${index}`);
+
   return (
-    <div>
-      <div className="relative h-[520px] overflow-hidden rounded-[16px] border border-line bg-[#eef1f7] sm:h-[560px]">
+    <div className={fill ? "flex h-full flex-col" : undefined}>
+      <div
+        className={
+          "relative overflow-hidden rounded-[16px] border border-line bg-[#eef1f7] " +
+          (fill ? "min-h-0 flex-1" : "h-[520px] sm:h-[560px]")
+        }
+      >
         <Canvas
           frameloop="never"
           dpr={[1, 2]}
@@ -555,39 +615,45 @@ export default function SpaceView({
 
           <PlotBox />
 
-          {/* Tension axes and the faint branches from theme to voices */}
+          {/* Tension axes through each cluster */}
           <SegmentLines segments={layout.axisSegments} color="#59627a" opacity={0.9} />
-          <SegmentLines segments={layout.spokeSegments} color="#6e7791" opacity={0.5} />
 
-          {/* When a voice is shown: dark lines to both ends of its tensions,
-              heavier toward the pole it leans to. */}
-          {shown &&
-            shown.poleLinks.map((link, i) => (
-              <Line
-                key={i}
-                points={[shown.pos, link.pos]}
-                color="#232a3a"
-                transparent
-                opacity={0.15 + 0.6 * link.weight}
-                lineWidth={0.6 + 1.8 * link.weight}
-              />
-            ))}
-
-          {/* Theme clusters */}
+          {/* Theme clusters: the label and centre node both open the topic. */}
           {layout.topics.map((topic) => (
             <group key={topic.id}>
-              <mesh position={topic.center}>
-                <sphereGeometry args={[1.05, 24, 24]} />
-                <meshBasicMaterial color={topic.color} transparent opacity={0.14} />
-              </mesh>
-              <mesh position={topic.center}>
-                <sphereGeometry args={[0.3, 16, 16]} />
-                <meshBasicMaterial color={topic.color} transparent opacity={0.9} />
+              <mesh
+                position={topic.center}
+                onPointerOver={(e) => {
+                  e.stopPropagation();
+                  setCursor("pointer");
+                }}
+                onPointerOut={() => setCursor("auto")}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openTopic(topic.index);
+                }}
+              >
+                <sphereGeometry args={[0.34, 16, 16]} />
+                <meshBasicMaterial
+                  color={topic.color}
+                  transparent
+                  opacity={0.95}
+                  depthTest={false}
+                />
               </mesh>
               <LabelSprite
                 text={topic.label}
                 position={[topic.center[0], topic.center[1] + 2, topic.center[2]]}
                 height={0.85}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openTopic(topic.index);
+                }}
+                onPointerOver={(e) => {
+                  e.stopPropagation();
+                  setCursor("pointer");
+                }}
+                onPointerOut={() => setCursor("auto")}
               />
             </group>
           ))}
@@ -610,71 +676,76 @@ export default function SpaceView({
             </group>
           ))}
 
-          {/* Voices */}
-          {layout.points.map((point) => {
-            const isMine = myIds.includes(point.povId);
-            const isShown = shownId === point.povId;
+          {/* Lean circles: the crowd on each axis, binned into up to three
+              bands and sized by how many voices sit there. */}
+          {layout.leanCircles.map((circle) => {
+            const isShown = shownId === circle.id;
             return (
-              <group key={point.povId}>
+              <group key={circle.id}>
                 <mesh
-                  position={point.pos}
-                  scale={isShown ? 1.4 : 1}
+                  position={circle.pos}
                   onPointerOver={(e) => {
                     e.stopPropagation();
-                    setHoveredId(point.povId);
-                    document.body.style.cursor = "pointer";
+                    setHoveredId(circle.id);
+                    setCursor("pointer");
                   }}
                   onPointerOut={() => {
                     setHoveredId(null);
-                    document.body.style.cursor = "auto";
+                    setCursor("auto");
                   }}
                   onClick={(e) => {
                     e.stopPropagation();
-                    setPinnedId(pinnedId === point.povId ? null : point.povId);
+                    setPinnedId(pinnedId === circle.id ? null : circle.id);
                   }}
                 >
-                  <sphereGeometry args={[isMine ? 0.34 : 0.24, 16, 16]} />
-                  <meshBasicMaterial color={point.color} transparent opacity={isShown || isMine ? 1 : 0.85} />
+                  <sphereGeometry args={[circle.radius, 22, 22]} />
+                  <meshBasicMaterial
+                    color={circle.color}
+                    transparent
+                    opacity={isShown ? 0.85 : 0.5}
+                  />
                 </mesh>
-                {/* Selected point gets a dark outline ring for emphasis */}
                 {isShown && (
-                  <mesh position={point.pos}>
-                    <sphereGeometry args={[isMine ? 0.44 : 0.34, 16, 16]} />
-                    <meshBasicMaterial color="#232a3a" transparent opacity={0.35} />
+                  <mesh position={circle.pos}>
+                    <sphereGeometry args={[circle.radius + 0.12, 22, 22]} />
+                    <meshBasicMaterial color="#232a3a" transparent opacity={0.22} />
                   </mesh>
-                )}
-                {/* Invisible, larger hit target for easier hovering */}
-                <mesh
-                  position={point.pos}
-                  visible={false}
-                  onPointerOver={(e) => {
-                    e.stopPropagation();
-                    setHoveredId(point.povId);
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setPinnedId(pinnedId === point.povId ? null : point.povId);
-                  }}
-                >
-                  <sphereGeometry args={[0.9, 8, 8]} />
-                </mesh>
-                {isMine && (
-                  <>
-                    <YouPulse
-                      position={point.pos}
-                      color={point.color}
-                      dotRadius={0.34}
-                    />
-                    <LabelSprite
-                      text="you"
-                      position={[point.pos[0], point.pos[1] - 0.7, point.pos[2]]}
-                      height={0.46}
-                    />
-                  </>
                 )}
               </group>
             );
           })}
+
+          {/* The visitor's own views: small pulsing dots, always on top. */}
+          {layout.youPoints.map((point) => (
+            <group key={point.povId}>
+              {/* Invisible, larger hit target for easy hovering. */}
+              <mesh
+                position={point.pos}
+                visible={false}
+                onPointerOver={(e) => {
+                  e.stopPropagation();
+                  setHoveredId(point.povId);
+                  setCursor("pointer");
+                }}
+                onPointerOut={() => {
+                  setHoveredId(null);
+                  setCursor("auto");
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPinnedId(pinnedId === point.povId ? null : point.povId);
+                }}
+              >
+                <sphereGeometry args={[0.9, 8, 8]} />
+              </mesh>
+              <YouDot position={point.pos} color={point.color} dotRadius={0.3} />
+              <LabelSprite
+                text="you"
+                position={[point.pos[0], point.pos[1] - 0.7, point.pos[2]]}
+                height={0.46}
+              />
+            </group>
+          ))}
 
           <OrbitControls
             enableDamping
@@ -688,7 +759,7 @@ export default function SpaceView({
         </Canvas>
 
         {/* Key */}
-        <div className="pointer-events-none absolute left-3 top-3 max-w-64 space-y-1.5 rounded-[10px] border border-black/5 bg-white/80 px-3.5 py-3 backdrop-blur-sm sm:left-4 sm:top-4">
+        <div className="pointer-events-none absolute left-3 top-3 max-w-56 space-y-1.5 rounded-[10px] border border-black/5 bg-white/80 px-3 py-2.5 backdrop-blur-sm sm:left-4 sm:top-4 sm:max-w-64 sm:px-3.5 sm:py-3">
           {layout.topics.map((topic) => (
             <div key={topic.id} className="flex items-center gap-2.5">
               <span className="flex w-4 shrink-0 justify-center">
@@ -713,30 +784,46 @@ export default function SpaceView({
             </div>
             <div className="flex items-center gap-2.5">
               <span className="flex w-4 shrink-0 justify-center">
-                <span className="block h-2 w-2 rounded-full bg-[#3a4152]/60" />
+                <span className="block h-2.5 w-2.5 rounded-full bg-[#3a4152]/40" />
               </span>
               <span className="text-[10px] leading-snug text-[#3a4152]">
-                One voice, closer to the end it leans toward
+                A group of voices, sized by how many lean that way
               </span>
             </div>
+            {layout.youPoints.length > 0 && (
+              <div className="flex items-center gap-2.5">
+                <span className="flex w-4 shrink-0 justify-center">
+                  <span className="block h-2 w-2 rounded-full bg-[#232a3a]" />
+                </span>
+                <span className="text-[10px] leading-snug text-[#3a4152]">
+                  Your view
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
+        {/* Reading text floats over the canvas when filling a slide. */}
+        {fill && shown && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center px-4 pb-4">
+            <p className="max-w-xl rounded-md bg-white/75 px-3 py-2 text-center text-xs leading-relaxed text-ink-soft backdrop-blur-sm sm:text-sm">
+              {shown.text}
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Reading panel, same pattern as the axes view */}
-      <div className="mx-auto mt-4 min-h-28 max-w-2xl">
-        {shown ? (
-          <div className="rounded-[12px] border border-line bg-paper-2/50 px-5 py-4 text-center">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-muted">
-              {myIds.includes(shown.povId) ? "Your view" : "One voice"} ·{" "}
-              {shown.topicLabel}
-              {shown.leans.length > 0 && ` · leans ${shown.leans.join(" + ")}`}
+      {/* On the standalone page the reading text sits below the canvas as plain
+          text, no card. */}
+      {!fill && (
+        <div className="mx-auto mt-4 min-h-16 max-w-2xl px-2">
+          {shown && (
+            <p className="text-center text-sm leading-relaxed text-ink-soft">
+              {shown.text}
             </p>
-            <p className="mt-2 text-sm leading-relaxed text-ink-soft">{shown.summary}</p>
-          </div>
-        ) : null}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
