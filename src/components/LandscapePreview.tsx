@@ -92,17 +92,6 @@ export default function LandscapePreview({
           <SpaceSlide landscape={landscape} active={index === 2} />
         </CarouselTrack>
       </div>
-
-      <footer className="border-t border-line">
-        <div className="mx-auto max-w-6xl px-5 py-6 text-xs text-muted">
-          <Link
-            href={siteCopy.parentSite.url}
-            className="transition-colors hover:text-ink"
-          >
-            {siteCopy.projectTitle} · {siteCopy.projectSubtitle}
-          </Link>
-        </div>
-      </footer>
     </section>
   );
 }

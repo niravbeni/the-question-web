@@ -297,9 +297,9 @@ function LabelSprite({
 }
 
 /**
- * The visitor's own dot: a small point that breathes gently and stays drawn on
- * top of everything, so "you" reads at a glance even when it sits inside a
- * cluster, without ballooning into a big blob.
+ * The visitor's own dot: a solid core the same size as every other voice, with
+ * a lighter halo that pulses outward on a loop so "you" is easy to find at a
+ * glance even when it sits inside a cluster.
  */
 function YouDot({
   position,
@@ -310,23 +310,38 @@ function YouDot({
   color: string;
   dotRadius: number;
 }) {
-  const core = useRef<THREE.Mesh>(null);
+  const halo = useRef<THREE.Mesh>(null);
+  const haloMat = useRef<THREE.MeshBasicMaterial>(null);
   const t = useRef(0);
 
   useFrame((_, delta) => {
     // Cap delta so watchdog-driven frames never jump the animation.
     t.current += Math.min(delta, 0.1);
-    if (core.current) {
-      const breathe = 1 + 0.14 * Math.sin(t.current * 3.2);
-      core.current.scale.setScalar(dotRadius * breathe);
+    // A ping that grows from the core out to a wide, faint radius and repeats.
+    const cycle = (t.current % 1.8) / 1.8;
+    if (halo.current && haloMat.current) {
+      halo.current.scale.setScalar(dotRadius * (1 + cycle * 6));
+      haloMat.current.opacity = 0.4 * (1 - cycle);
     }
   });
 
   return (
     <group position={position}>
-      {/* Breathing core, same size as other voices but always on top. */}
-      <mesh ref={core} raycast={() => null} renderOrder={12}>
-        <sphereGeometry args={[1, 16, 16]} />
+      {/* Expanding pulse halo: lighter and larger, draws the eye. */}
+      <mesh ref={halo} raycast={() => null} renderOrder={11}>
+        <sphereGeometry args={[1, 20, 20]} />
+        <meshBasicMaterial
+          ref={haloMat}
+          color={color}
+          transparent
+          opacity={0.4}
+          depthTest={false}
+          depthWrite={false}
+        />
+      </mesh>
+      {/* Solid core, same size as other voices, always on top. */}
+      <mesh raycast={() => null} renderOrder={12}>
+        <sphereGeometry args={[dotRadius, 16, 16]} />
         <meshBasicMaterial color={color} transparent opacity={1} depthTest={false} depthWrite={false} />
       </mesh>
     </group>
@@ -706,13 +721,14 @@ export default function SpaceView({
                 <span className="block h-2 w-2 rounded-full bg-[#3a4152]/70" />
               </span>
               <span className="text-[10px] leading-snug text-[#3a4152]">
-                One voice, at its position between the tensions
+                Other voices
               </span>
             </div>
             {layout.points.some((p) => p.isMine) && (
               <div className="flex items-center gap-2.5">
-                <span className="flex w-4 shrink-0 justify-center">
-                  <span className="block h-2 w-2 rounded-full bg-[#232a3a]" />
+                <span className="relative flex w-4 shrink-0 items-center justify-center">
+                  <span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-[#3a4152]/50" />
+                  <span className="relative block h-2 w-2 rounded-full bg-[#3a4152]/80" />
                 </span>
                 <span className="text-[10px] leading-snug text-[#3a4152]">
                   Your view
@@ -722,10 +738,10 @@ export default function SpaceView({
           </div>
         </div>
 
-        {/* Reading text floats over the canvas when filling a slide. */}
+        {/* Reading text floats at the top-right, opposite the key. */}
         {fill && shown && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center px-4 pb-4">
-            <p className="max-w-xl rounded-md bg-white/75 px-3 py-2 text-center text-xs leading-relaxed text-ink-soft backdrop-blur-sm sm:text-sm">
+          <div className="pointer-events-none absolute right-3 top-3 flex max-w-56 justify-end sm:right-4 sm:top-4 sm:max-w-72">
+            <p className="rounded-[10px] border border-black/5 bg-white/80 px-3 py-2.5 text-left text-xs leading-relaxed text-ink-soft backdrop-blur-sm sm:px-3.5 sm:py-3 sm:text-sm">
               {shown.text}
             </p>
           </div>
