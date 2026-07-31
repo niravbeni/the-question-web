@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
+
+// Run before the browser paints on the client so scroll restoration is applied
+// to the first frame; fall back to useEffect during server rendering to avoid
+// the no-op warning.
+const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 /**
  * The landing page scrolls inside its own snap container, so the browser's hash
@@ -8,14 +14,16 @@ import { useEffect } from "react";
  *
  *  1. On arrival — and whenever a hash link like "/#landscape" is followed — it
  *     brings that screen into view, since the browser will not scroll a nested
- *     container to a hash on its own.
+ *     container to a hash on its own. This runs in a layout effect so the
+ *     correct screen is in place on the first painted frame, rather than
+ *     flashing the top and then jumping down.
  *  2. As the reader moves between screens it keeps the URL's hash on the screen
  *     in view, quietly via replaceState (no new history entries). So leaving for
  *     a topic or a starter and coming back — through our own Back link or the
  *     browser's — returns to the screen they left rather than the top.
  */
 export default function SnapHashScroll() {
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const container =
       document.querySelector<HTMLElement>("[data-snap-scroll]");
     const sections = container
