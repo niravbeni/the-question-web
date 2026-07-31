@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { recalibrate } from "@/lib/analysis";
 import { isAdminRequest } from "@/lib/adminAuth";
 import { rateLimit, clientKey } from "@/lib/ratelimit";
@@ -28,5 +29,7 @@ export async function POST(req: Request) {
   if (!result.ok) {
     return NextResponse.json({ error: result.reason }, { status: 409 });
   }
+  // Recalibration reshapes the shared landscape shown on the cached home page.
+  revalidatePath("/");
   return NextResponse.json(result);
 }

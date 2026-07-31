@@ -5,7 +5,13 @@ import { siteCopy } from "@/content/copy";
 import { getLandscape, getStarters } from "@/lib/db";
 import { ensureSeeded } from "@/lib/seed";
 
-export const dynamic = "force-dynamic";
+// The home page is a shared, read-only snapshot (starters + landscape). Caching
+// it as a static/ISR page lets the "Back" links from contribute and landscape
+// fully prefetch it, so returning to it is instant instead of a fresh dynamic
+// render. Writes (publishing a view, recalibrating, editing starters) call
+// revalidatePath("/") to refresh the snapshot on demand; this number is only a
+// backstop for anything that changes data outside those paths.
+export const revalidate = 300;
 
 export default async function LandingPage() {
   await ensureSeeded();

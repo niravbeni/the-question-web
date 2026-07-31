@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse, after } from "next/server";
+import { revalidatePath } from "next/cache";
 import { maybeAutoRecalibrate, placeNewPov } from "@/lib/analysis";
 import { getPovById, getStarterById, insertPov, setPovEmbedding } from "@/lib/db";
 import { embedText } from "@/lib/embeddings";
@@ -111,10 +112,15 @@ export async function POST(req: Request) {
     }
   }
 
+  // The new view changes the shared landscape shown on the cached home page.
+  revalidatePath("/");
+
   // If enough new voices have accumulated, recalibrate after the response is
   // sent: `after` keeps the serverless function alive for the work.
   after(async () => {
     await maybeAutoRecalibrate();
+    // A recalibration can reshape the whole landscape, so refresh home again.
+    revalidatePath("/");
   });
 
   return NextResponse.json({ povId: id, topicId });

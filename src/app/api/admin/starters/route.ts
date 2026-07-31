@@ -54,6 +54,8 @@ export async function PATCH(req: Request) {
   await updateStarter(body.id, { text, shortLabel, placeholder });
   // Drop the cached static render so the edited sentence shows on the next load.
   revalidatePath(`/contribute/${body.id}`);
+  // The home page lists the starters too, so refresh its cached snapshot.
+  revalidatePath("/");
   return NextResponse.json({ ok: true });
 }
 
@@ -65,5 +67,7 @@ export async function DELETE(req: Request) {
   await resetStarters();
   // A reset touches every starter, so clear all the cached contribute pages.
   revalidatePath("/contribute/[starterId]", "page");
+  // The home page lists the starters too, so refresh its cached snapshot.
+  revalidatePath("/");
   return NextResponse.json({ ok: true, reset: true });
 }
