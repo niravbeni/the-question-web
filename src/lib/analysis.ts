@@ -27,6 +27,9 @@ import type {
 const MIN_POVS_FOR_CALIBRATION = 8;
 /** New views that accumulate before a recalibration fires automatically. */
 export const RECALIBRATION_THRESHOLD = 8;
+/** The landscape always resolves into this many topics. */
+const MIN_TOPICS = 4;
+const MAX_TOPICS = 6;
 /** Below this placement fit, a view counts as poorly covered by current topics. */
 const POOR_FIT = 0.55;
 /** Below this fit, a new view is left unplaced rather than forced into a topic. */
@@ -194,8 +197,14 @@ export async function recalibrate(): Promise<RecalibrationSummary> {
       clusters = await llmCluster(openai, embedded);
     }
     if (!clusters) {
-      const k = Math.max(2, Math.min(6, Math.round(Math.sqrt(embedded.length))));
-      clusters = mergeSmallClusters(vectors, kMeans(vectors, k), 3);
+      const k = Math.max(
+        MIN_TOPICS,
+        Math.min(MAX_TOPICS, Math.round(Math.sqrt(embedded.length))),
+      );
+      const raw = kMeans(vectors, k);
+      const merged = mergeSmallClusters(vectors, raw, 3);
+      // Absorbing stragglers must not shrink the landscape below its floor.
+      clusters = merged.length >= MIN_TOPICS ? merged : raw;
     }
 
     // 3 + 4. Derive topics/tensions and score members. Each cluster costs
@@ -298,7 +307,10 @@ export async function maybeAutoRecalibrate(): Promise<void> {
  */
 async function llmCluster(openai: OpenAI, povs: Pov[]): Promise<number[][] | null> {
   const list = povs.map((p, i) => `${i}. ${p.summary}`).join("\n");
-  const target = Math.max(3, Math.min(6, Math.round(Math.sqrt(povs.length))));
+  const target = Math.max(
+    MIN_TOPICS,
+    Math.min(MAX_TOPICS, Math.round(Math.sqrt(povs.length))),
+  );
   const prompt = `${ANALYST_ROLE}
 
 Group these anonymous points of view into topics.
@@ -309,7 +321,7 @@ Rules:
 - Group by SUBJECT: what the view is about and the decision at stake: not by tone, strength of feeling, or whether it is optimistic about AI.
 - Let the groups emerge from these views as they are today. Do not reach for standard categories; if several views converge on a subject that was not prominent before, that is a real group and deserves to be one. The whole point of regrouping is to notice when the conversation has moved.
 - Each group must share a genuinely common subject (e.g. who controls body data, whose symptoms models learn, what stays human in care): never a catch-all like "AI in health".
-- Form ${Math.max(3, target - 1)} to ${Math.min(6, target + 1)} groups. Prefer groups of at least 3 views. Only leave a view alone if it truly fits nowhere.
+- Form ${Math.max(MIN_TOPICS, target - 1)} to ${Math.min(MAX_TOPICS, target + 1)} groups: never fewer than ${MIN_TOPICS}, never more than ${MAX_TOPICS}. Prefer groups of at least 3 views. Only leave a view alone if it truly fits nowhere.
 - Every index from 0 to ${povs.length - 1} must appear in exactly one group.
 
 Respond with JSON only: {"clusters": [[<indexes>], [<indexes>], ...]}`;
@@ -327,7 +339,16 @@ Respond with JSON only: {"clusters": [[<indexes>], [<indexes>], ...]}`;
     for (const i of clean) seen.add(i);
     if (clean.length > 0) clusters.push(clean);
   }
-  if (clusters.length < 2) return null;
+  // Too few groups: reject so the k-means fallback (bounded 4-6) takes over.
+  if (clusters.length < MIN_TOPICS) return null;
+
+  // Too many groups: fold the smallest into the next-smallest until in range,
+  // so the landscape never sprawls past MAX_TOPICS corners.
+  while (clusters.length > MAX_TOPICS) {
+    clusters.sort((a, b) => a.length - b.length);
+    const smallest = clusters.shift()!;
+    clusters[0].push(...smallest);
+  }
 
   // Fold any dropped indexes into the largest cluster.
   const largest = clusters.reduce((a, b) => (b.length > a.length ? b : a));
@@ -370,10 +391,19 @@ Return exactly two tensions. Even if these views mostly agree, surface the two m
 Respond with JSON only:
 {"label": "...", "summary": "...", "tensions": [{"pole_a": "...", "pole_b": "...", "question": "..."}, {"pole_a": "...", "pole_b": "...", "question": "..."}]}`;
 
-  const parsed = await jsonCall<DerivedTopic>(openai, prompt);
-  if (!parsed || !parsed.label || !Array.isArray(parsed.tensions)) return null;
-  // Ask for two; keep at most two, and accept fewer if that is all it found.
-  parsed.tensions = parsed.tensions.slice(0, 2);
+  // Every topic must carry exactly two tensions. Retry once on a short
+  // answer; if the model still under-delivers, keep the topic with what it
+  // found rather than dropping the whole cluster.
+  let parsed: DerivedTopic | null = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const candidate = await jsonCall<DerivedTopic>(openai, prompt);
+    if (!candidate || !candidate.label || !Array.isArray(candidate.tensions)) {
+      continue;
+    }
+    candidate.tensions = candidate.tensions.slice(0, 2);
+    parsed = candidate;
+    if (candidate.tensions.length === 2) break;
+  }
   return parsed;
 }
 

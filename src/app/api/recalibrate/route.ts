@@ -7,8 +7,9 @@ import { ensureSeeded } from "@/lib/seed";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-// A full recalibration makes several analysis-model calls.
-export const maxDuration = 60;
+// A full recalibration makes several analysis-model calls; give it enough
+// headroom that it is never killed halfway through on the deployed site.
+export const maxDuration = 300;
 
 /** Manual recalibration trigger (admin only). Reclusters every view and re-derives tensions. */
 export async function POST(req: Request) {

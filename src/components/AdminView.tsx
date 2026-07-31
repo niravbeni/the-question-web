@@ -90,6 +90,9 @@ export default function AdminView() {
   }, [authFetch]);
 
   useEffect(() => {
+    // Fetch-on-mount: load() only touches state after awaited responses, so
+    // there is no synchronous set-state cascade for the rule to prevent.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, [load]);
 

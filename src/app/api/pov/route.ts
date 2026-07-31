@@ -11,8 +11,10 @@ import type { ChatMessage } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-// Publishing can trigger a background recalibration (several model calls).
-export const maxDuration = 60;
+// Publishing can trigger a background recalibration: one clustering pass plus
+// several model calls per topic. Give it real headroom so a recalibration is
+// never killed halfway through on the deployed site.
+export const maxDuration = 300;
 
 interface PublishBody {
   starterId: string;
