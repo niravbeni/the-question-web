@@ -1,50 +1,30 @@
-import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import TopicCarousel from "@/components/TopicCarousel";
+import LandscapeLoading from "@/app/landscape/loading";
 import { getLandscape } from "@/lib/db";
 import { ensureSeeded } from "@/lib/seed";
 
-export const dynamic = "force-dynamic";
-
 /**
- * The landscape as a carousel of topics, one topic's tensions per slide.
- * The opening slide is chosen from, in order: an explicit ?topic=i, the topic
- * holding a ?pov= voice (where someone lands right after publishing), else the
- * first topic.
+ * The landscape as a carousel of topics, one topic's tensions per slide. The
+ * assembled landscape is the same for every visitor, so this is a cached
+ * (ISR) page that the topic tiles on the home page can fully prefetch, making
+ * the click into it instant. Which slide opens is decided on the client from
+ * the URL (?topic=i, else the topic holding ?pov=, else the first), so the
+ * page itself stays static; writes revalidate it on demand.
  */
-export default async function LandscapePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ pov?: string; topic?: string; view?: string }>;
-}) {
-  const { pov, topic, view } = await searchParams;
+export const revalidate = 300;
 
-  // The classic carousel folded into this page; keep old links working.
-  if (view !== undefined) redirect("/landscape");
-
+export default async function LandscapePage() {
   await ensureSeeded();
   const landscape = await getLandscape();
-  const lastTopic = landscape.topics.length - 1;
 
-  const parsed = topic !== undefined ? Number.parseInt(topic, 10) : NaN;
-  let initialIndex = Number.isNaN(parsed)
-    ? -1
-    : Math.max(0, Math.min(lastTopic, parsed));
-
-  if (initialIndex < 0 && pov) {
-    const point = landscape.spiderPoints.find((p) => p.povId === pov);
-    if (point) {
-      initialIndex = landscape.topics.findIndex((t) => t.id === point.topicId);
-    }
-  }
-  if (initialIndex < 0) initialIndex = 0;
-
+  // TopicCarousel reads the opening slide from the URL via useSearchParams,
+  // which suspends during prerender, so it lives behind a Suspense boundary.
   return (
     <div className="flex h-dvh flex-col">
-      <TopicCarousel
-        landscape={landscape}
-        initialIndex={initialIndex}
-        focusPovId={pov ?? null}
-      />
+      <Suspense fallback={<LandscapeLoading />}>
+        <TopicCarousel landscape={landscape} />
+      </Suspense>
     </div>
   );
 }

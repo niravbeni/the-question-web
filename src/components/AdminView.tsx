@@ -67,13 +67,23 @@ export default function AdminView() {
         setLocked(true);
         return;
       }
-      const povData = (await povRes.json()) as { povs: AdminPov[] };
-      const starterData = (await starterRes.json()) as { starters: AdminStarter[] };
-      setPovs(povData.povs);
-      setStarters(starterData.starters);
+      if (!povRes.ok || !starterRes.ok) {
+        setMessage("Could not load the admin data. Please try again.");
+        return;
+      }
+      const povData = (await povRes.json().catch(() => ({}))) as {
+        povs?: AdminPov[];
+      };
+      const starterData = (await starterRes.json().catch(() => ({}))) as {
+        starters?: AdminStarter[];
+      };
+      setPovs(povData.povs ?? []);
+      setStarters(starterData.starters ?? []);
       setEdits({});
       setStarterEdits({});
       setLocked(false);
+    } catch {
+      setMessage("Could not reach the server. Check your connection and retry.");
     } finally {
       setLoading(false);
     }
@@ -193,7 +203,7 @@ export default function AdminView() {
       <main className="flex-1">
         <div className="mx-auto max-w-sm px-5 py-24 text-center">
           <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">
-            Prototype admin
+            Admin
           </p>
           <h1 className="mt-3 font-display text-2xl text-ink">Enter the admin password</h1>
           <form
@@ -230,7 +240,7 @@ export default function AdminView() {
     <main className="flex-1">
       <div className="mx-auto max-w-5xl px-5 py-12">
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">
-          Prototype admin · not linked from the site
+          Admin · unlisted page — edits go live on the site
         </p>
 
         {/* Sentence starters */}

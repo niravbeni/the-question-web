@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import TopicTensions from "@/components/TopicTensions";
 import {
   useCarousel,
@@ -17,18 +18,37 @@ import type { Landscape } from "@/lib/types";
  * tensions. Swipe, arrow, or tap between topics; the URL follows so any topic
  * stays shareable. A view arrived at through `?pov=` opens on its own topic
  * with that voice marked, which is where someone lands right after publishing.
+ *
+ * The page is a cached, static render shared by everyone, so the opening slide
+ * is resolved here on the client from the URL rather than on the server: an
+ * explicit `?topic=i`, else the topic holding a `?pov=` voice, else the first.
+ * On a client navigation these params are known immediately, so tapping a
+ * topic on the home page lands on the right slide with no server round-trip.
  */
-export default function TopicCarousel({
-  landscape,
-  initialIndex,
-  focusPovId,
-}: {
-  landscape: Landscape;
-  initialIndex: number;
-  focusPovId: string | null;
-}) {
+export default function TopicCarousel({ landscape }: { landscape: Landscape }) {
   const topics = landscape.topics;
   const count = topics.length;
+
+  // Read the opening state from the URL once, at mount. The effect below strips
+  // ?pov= from the address bar shortly after, and useSearchParams is reactive,
+  // so freezing here keeps the just-published voice highlighted.
+  const searchParams = useSearchParams();
+  const [{ initialIndex, focusPovId }] = useState(() => {
+    const topicParam = searchParams.get("topic");
+    const pov = searchParams.get("pov");
+    const lastTopic = count - 1;
+    const parsed = topicParam !== null ? Number.parseInt(topicParam, 10) : NaN;
+    let index = Number.isNaN(parsed)
+      ? -1
+      : Math.max(0, Math.min(lastTopic, parsed));
+    if (index < 0 && pov) {
+      const point = landscape.spiderPoints.find((p) => p.povId === pov);
+      if (point) index = topics.findIndex((t) => t.id === point.topicId);
+    }
+    if (index < 0) index = 0;
+    return { initialIndex: index, focusPovId: pov };
+  });
+
   const { index, go, next, prev, trackRef, touchHandlers } = useCarousel({
     count,
     initial: initialIndex,

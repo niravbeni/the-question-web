@@ -29,7 +29,8 @@ export async function POST(req: Request) {
   if (!result.ok) {
     return NextResponse.json({ error: result.reason }, { status: 409 });
   }
-  // Recalibration reshapes the shared landscape shown on the cached home page.
+  // Recalibration reshapes the shared landscape shown on the cached pages.
   revalidatePath("/");
+  revalidatePath("/landscape");
   return NextResponse.json(result);
 }

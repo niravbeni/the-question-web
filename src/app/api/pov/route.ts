@@ -112,15 +112,18 @@ export async function POST(req: Request) {
     }
   }
 
-  // The new view changes the shared landscape shown on the cached home page.
+  // The new view changes the shared landscape shown on the cached home and
+  // landscape pages.
   revalidatePath("/");
+  revalidatePath("/landscape");
 
   // If enough new voices have accumulated, recalibrate after the response is
   // sent: `after` keeps the serverless function alive for the work.
   after(async () => {
     await maybeAutoRecalibrate();
-    // A recalibration can reshape the whole landscape, so refresh home again.
+    // A recalibration can reshape the whole landscape, so refresh both again.
     revalidatePath("/");
+    revalidatePath("/landscape");
   });
 
   return NextResponse.json({ povId: id, topicId });
