@@ -348,28 +348,54 @@ function YouDot({
   );
 }
 
+/** Neon accent for the cluster-centre asterisk. */
+const RETICLE_COLOR = "#d4f24a";
+
 /**
- * A cluster's centre: three short, dark perpendicular bars forming a 3D
- * crosshair. Reads as a structural "centre here" marker from any angle,
- * without being mistaken for one of the coloured voice dots.
+ * Seven bar directions — three orthogonal axes plus the four cube diagonals —
+ * so the centre reads as a 3D asterisk / starburst from any angle. Each
+ * rotation turns a +x-aligned bar to point down its direction.
+ */
+const RETICLE_ROTATIONS: [number, number, number][] = (
+  [
+    [1, 0, 0],
+    [0, 1, 0],
+    [0, 0, 1],
+    [1, 1, 1],
+    [1, 1, -1],
+    [1, -1, 1],
+    [-1, 1, 1],
+  ] as const
+).map((d) => {
+  const q = new THREE.Quaternion().setFromUnitVectors(
+    new THREE.Vector3(1, 0, 0),
+    new THREE.Vector3(d[0], d[1], d[2]).normalize(),
+  );
+  const e = new THREE.Euler().setFromQuaternion(q);
+  return [e.x, e.y, e.z] as [number, number, number];
+});
+
+/**
+ * A cluster's centre: a small neon 3D asterisk. Reads as a structural
+ * "centre here" marker from any angle, without being mistaken for one of the
+ * coloured voice dots.
  */
 function Reticle() {
-  const len = 1.15;
-  const thick = 0.05;
+  const len = 0.85;
+  const thick = 0.07;
   return (
     <group>
-      <mesh renderOrder={10}>
-        <boxGeometry args={[len, thick, thick]} />
-        <meshBasicMaterial color="#39415a" transparent opacity={0.9} depthTest={false} />
-      </mesh>
-      <mesh renderOrder={10}>
-        <boxGeometry args={[thick, len, thick]} />
-        <meshBasicMaterial color="#39415a" transparent opacity={0.9} depthTest={false} />
-      </mesh>
-      <mesh renderOrder={10}>
-        <boxGeometry args={[thick, thick, len]} />
-        <meshBasicMaterial color="#39415a" transparent opacity={0.9} depthTest={false} />
-      </mesh>
+      {RETICLE_ROTATIONS.map((rot, i) => (
+        <mesh key={i} rotation={rot} renderOrder={10}>
+          <boxGeometry args={[len, thick, thick]} />
+          <meshBasicMaterial
+            color={RETICLE_COLOR}
+            transparent
+            opacity={0.95}
+            depthTest={false}
+          />
+        </mesh>
+      ))}
     </group>
   );
 }
@@ -578,7 +604,7 @@ export default function SpaceView({
         <Canvas
           frameloop="never"
           dpr={[1, 2]}
-          camera={{ position: [26, 19, 42], fov: 50 }}
+          camera={{ position: [15, 10, 16], fov: 50 }}
           gl={{ antialias: true }}
           onPointerDown={() => setEngaged(true)}
           onPointerMissed={() => setPinnedId(null)}
