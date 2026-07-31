@@ -54,7 +54,7 @@ export default function LandscapePreview({
       data-snap-section
       className="flex h-dvh snap-start flex-col pt-6"
     >
-      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col px-5">
+      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col px-5 pb-6 sm:pb-8">
         {/* Heading, with the way to switch between the two readings */}
         <div className="flex items-center justify-between gap-4 py-6">
           <h2 className="font-display text-2xl text-ink">
