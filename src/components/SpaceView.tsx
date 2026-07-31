@@ -348,6 +348,32 @@ function YouDot({
   );
 }
 
+/**
+ * A cluster's centre: three short, dark perpendicular bars forming a 3D
+ * crosshair. Reads as a structural "centre here" marker from any angle,
+ * without being mistaken for one of the coloured voice dots.
+ */
+function Reticle() {
+  const len = 1.15;
+  const thick = 0.05;
+  return (
+    <group>
+      <mesh renderOrder={10}>
+        <boxGeometry args={[len, thick, thick]} />
+        <meshBasicMaterial color="#39415a" transparent opacity={0.9} depthTest={false} />
+      </mesh>
+      <mesh renderOrder={10}>
+        <boxGeometry args={[thick, len, thick]} />
+        <meshBasicMaterial color="#39415a" transparent opacity={0.9} depthTest={false} />
+      </mesh>
+      <mesh renderOrder={10}>
+        <boxGeometry args={[thick, thick, len]} />
+        <meshBasicMaterial color="#39415a" transparent opacity={0.9} depthTest={false} />
+      </mesh>
+    </group>
+  );
+}
+
 function SegmentLines({
   segments,
   color,
@@ -568,26 +594,24 @@ export default function SpaceView({
           {/* Theme clusters: the label and centre node both open the topic. */}
           {layout.topics.map((topic) => (
             <group key={topic.id}>
-              <mesh
-                position={topic.center}
-                onPointerOver={(e) => {
-                  e.stopPropagation();
-                  setCursor("pointer");
-                }}
-                onPointerOut={() => setCursor("auto")}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openTopic(topic.index);
-                }}
-              >
-                <sphereGeometry args={[0.34, 16, 16]} />
-                <meshBasicMaterial
-                  color={topic.color}
-                  transparent
-                  opacity={0.95}
-                  depthTest={false}
-                />
-              </mesh>
+              <group position={topic.center}>
+                {/* Invisible hit target keeps the centre clickable. */}
+                <mesh
+                  visible={false}
+                  onPointerOver={(e) => {
+                    e.stopPropagation();
+                    setCursor("pointer");
+                  }}
+                  onPointerOut={() => setCursor("auto")}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openTopic(topic.index);
+                  }}
+                >
+                  <sphereGeometry args={[0.8, 12, 12]} />
+                </mesh>
+                <Reticle />
+              </group>
               <LabelSprite
                 text={topic.label}
                 position={[topic.center[0], topic.center[1] + 2, topic.center[2]]}
