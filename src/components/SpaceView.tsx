@@ -22,6 +22,8 @@ import type { Landscape } from "@/lib/types";
 const TOPIC_RADIUS = 13;
 const AXIS_HALF = 4.4;
 const SCORE_REACH = 3.4;
+/** Radius shared by every voice dot, including the visitor's pulsing one. */
+const DOT_RADIUS = 0.16;
 
 /** One distinct hue per theme, scatter-plot style. */
 const TOPIC_COLORS = [
@@ -48,24 +50,15 @@ function hash01(id: string): number {
   return ((h >>> 0) % 100000) / 100000;
 }
 
-/** A band of the crowd on one tension axis, drawn as a single sized circle. */
-interface LeanCircle {
-  id: string;
-  topicId: string;
-  color: string;
-  pos: [number, number, number];
-  radius: number;
-  /** Plain text shown when this circle is hovered or tapped. */
-  text: string;
-}
-
-/** One of the visitor's own published views, kept as an individual dot. */
-interface YouPoint {
+/** One voice, placed at the vector sum of its tension scores. */
+interface VoicePoint {
   povId: string;
   topicId: string;
   summary: string;
   color: string;
   pos: [number, number, number];
+  /** True for the visitor's own published views: drawn as a pulsing dot. */
+  isMine: boolean;
 }
 
 interface SpacePole {
@@ -86,26 +79,16 @@ interface SpaceTopic {
 interface SpaceLayout {
   topics: SpaceTopic[];
   poles: SpacePole[];
-  leanCircles: LeanCircle[];
-  youPoints: YouPoint[];
+  points: VoicePoint[];
   /** Flat xyz pairs for the tension axis line segments. */
   axisSegments: Float32Array;
-}
-
-/** A score at or beyond this magnitude counts as leaning to that pole. */
-const LEAN_CUTOFF = 1 / 3;
-
-/** Circle radius grows with the crowd, but gently and within bounds. */
-function bandRadius(count: number): number {
-  return Math.min(1.3, 0.42 + 0.18 * Math.sqrt(count));
 }
 
 function buildLayout(landscape: Landscape, myIds: string[]): SpaceLayout {
   const mine = new Set(myIds);
   const topics: SpaceTopic[] = [];
   const poles: SpacePole[] = [];
-  const leanCircles: LeanCircle[] = [];
-  const youPoints: YouPoint[] = [];
+  const points: VoicePoint[] = [];
   const axisSegs: number[] = [];
 
   const K = landscape.topics.length;
@@ -154,59 +137,14 @@ function buildLayout(landscape: Landscape, myIds: string[]): SpaceLayout {
         { id: `${tension.id}-b`, label: tension.poleB, topicId: topic.id, pos: b },
       );
       axisSegs.push(...a, ...b);
-
-      // Bin the crowd into three bands along this axis and summarise each as a
-      // single circle, sized by how many voices sit there and placed at the
-      // band's average lean so distinct tensions never pile onto the centre.
-      const bands: Array<{
-        key: "left" | "center" | "right";
-        text: string | null;
-        pole: string | null;
-        count: number;
-        sum: number;
-      }> = [
-        { key: "left", text: tension.sections.left, pole: tension.poleA, count: 0, sum: 0 },
-        { key: "center", text: tension.sections.center, pole: null, count: 0, sum: 0 },
-        { key: "right", text: tension.sections.right, pole: tension.poleB, count: 0, sum: 0 },
-      ];
-      for (const p of tension.points) {
-        const band =
-          p.score <= -LEAN_CUTOFF ? bands[0] : p.score >= LEAN_CUTOFF ? bands[2] : bands[1];
-        band.count += 1;
-        band.sum += p.score;
-      }
-      for (const band of bands) {
-        if (band.count === 0) continue;
-        const mean = band.sum / band.count;
-        // Center bands average near zero; nudge them off the shared centre a
-        // touch along their own axis so overlapping tensions stay legible.
-        const frac =
-          band.key === "center" ? (mean >= 0 ? 0.14 : -0.14) : mean;
-        leanCircles.push({
-          id: `${tension.id}:${band.key}`,
-          topicId: topic.id,
-          color,
-          pos: [
-            center[0] + d.x * frac * SCORE_REACH,
-            center[1] + d.y * frac * SCORE_REACH,
-            center[2] + d.z * frac * SCORE_REACH,
-          ],
-          radius: bandRadius(band.count),
-          text:
-            band.text ??
-            `${band.count} ${band.count === 1 ? "voice" : "voices"} ${
-              band.pole ? `leaning toward "${band.pole}"` : "weighing both sides"
-            }`,
-        });
-      }
     });
 
-    // The visitor's own views stay individual, at the vector sum of their
-    // scores across this topic's tensions.
+    // Every voice is its own dot at the vector sum of its scores across this
+    // topic's tensions, so the crowd reads as exact positions between the
+    // poles rather than a summarised blob.
     const scoresByPov = new Map<string, { summary: string; scores: number[] }>();
     topic.tensions.forEach((tension, j) => {
       for (const p of tension.points) {
-        if (!mine.has(p.povId)) continue;
         const entry =
           scoresByPov.get(p.povId) ?? { summary: p.summary, scores: [] as number[] };
         entry.scores[j] = p.score;
@@ -220,16 +158,17 @@ function buildLayout(landscape: Landscape, myIds: string[]): SpaceLayout {
         if (s === undefined) return;
         pos.addScaledVector(dirs[j], s * SCORE_REACH);
       });
-      // Small deterministic jitter so two of your views never fully overlap.
+      // Small deterministic jitter so identical scores never fully overlap.
       pos.x += (hash01(povId) - 0.5) * 0.9;
       pos.y += (hash01(povId + "y") - 0.5) * 0.9;
       pos.z += (hash01(povId + "z") - 0.5) * 0.9;
-      youPoints.push({
+      points.push({
         povId,
         summary: entry.summary,
         topicId: topic.id,
         color,
         pos: [pos.x, pos.y, pos.z],
+        isMine: mine.has(povId),
       });
     }
   });
@@ -237,8 +176,7 @@ function buildLayout(landscape: Landscape, myIds: string[]): SpaceLayout {
   return {
     topics,
     poles,
-    leanCircles,
-    youPoints,
+    points,
     axisSegments: new Float32Array(axisSegs),
   };
 }
@@ -386,12 +324,7 @@ function YouDot({
 
   return (
     <group position={position}>
-      {/* A thin ring so the dot still stands out against its cluster color. */}
-      <mesh raycast={() => null} renderOrder={11}>
-        <sphereGeometry args={[dotRadius * 1.5, 18, 18]} />
-        <meshBasicMaterial color="#232a3a" transparent opacity={0.28} depthTest={false} depthWrite={false} />
-      </mesh>
-      {/* Breathing core, always on top. */}
+      {/* Breathing core, same size as other voices but always on top. */}
       <mesh ref={core} raycast={() => null} renderOrder={12}>
         <sphereGeometry args={[1, 16, 16]} />
         <meshBasicMaterial color={color} transparent opacity={1} depthTest={false} depthWrite={false} />
@@ -578,12 +511,11 @@ export default function SpaceView({
   const [engaged, setEngaged] = useState(false);
   const shownId = hoveredId ?? pinnedId;
 
-  // Everything hoverable resolves to the same shape: some text to read and the
-  // topic it belongs to (so that topic's pole labels appear).
+  // A hovered or pinned voice resolves to its summary and the topic it belongs
+  // to (so that topic's pole labels appear).
   const detail = useMemo(() => {
     const m = new Map<string, { text: string; topicId: string }>();
-    for (const c of layout.leanCircles) m.set(c.id, { text: c.text, topicId: c.topicId });
-    for (const p of layout.youPoints) m.set(p.povId, { text: p.summary, topicId: p.topicId });
+    for (const p of layout.points) m.set(p.povId, { text: p.summary, topicId: p.topicId });
     return m;
   }, [layout]);
   const shown = shownId ? (detail.get(shownId) ?? null) : null;
@@ -676,17 +608,19 @@ export default function SpaceView({
             </group>
           ))}
 
-          {/* Lean circles: the crowd on each axis, binned into up to three
-              bands and sized by how many voices sit there. */}
-          {layout.leanCircles.map((circle) => {
-            const isShown = shownId === circle.id;
+          {/* Every voice as its own dot; the visitor's own views pulse and
+              carry a "you" label on top. */}
+          {layout.points.map((point) => {
+            const isShown = shownId === point.povId;
             return (
-              <group key={circle.id}>
+              <group key={point.povId}>
+                {/* Invisible, larger hit target for easy hovering. */}
                 <mesh
-                  position={circle.pos}
+                  position={point.pos}
+                  visible={false}
                   onPointerOver={(e) => {
                     e.stopPropagation();
-                    setHoveredId(circle.id);
+                    setHoveredId(point.povId);
                     setCursor("pointer");
                   }}
                   onPointerOut={() => {
@@ -695,57 +629,42 @@ export default function SpaceView({
                   }}
                   onClick={(e) => {
                     e.stopPropagation();
-                    setPinnedId(pinnedId === circle.id ? null : circle.id);
+                    setPinnedId(pinnedId === point.povId ? null : point.povId);
                   }}
                 >
-                  <sphereGeometry args={[circle.radius, 22, 22]} />
-                  <meshBasicMaterial
-                    color={circle.color}
-                    transparent
-                    opacity={isShown ? 0.85 : 0.5}
-                  />
+                  <sphereGeometry args={[0.5, 8, 8]} />
                 </mesh>
-                {isShown && (
-                  <mesh position={circle.pos}>
-                    <sphereGeometry args={[circle.radius + 0.12, 22, 22]} />
-                    <meshBasicMaterial color="#232a3a" transparent opacity={0.22} />
+
+                {point.isMine ? (
+                  <>
+                    <YouDot position={point.pos} color={point.color} dotRadius={DOT_RADIUS} />
+                    <LabelSprite
+                      text="you"
+                      position={[point.pos[0], point.pos[1] - 0.6, point.pos[2]]}
+                      height={0.46}
+                    />
+                  </>
+                ) : (
+                  <mesh position={point.pos} scale={isShown ? 1.5 : 1}>
+                    <sphereGeometry args={[DOT_RADIUS, 16, 16]} />
+                    <meshBasicMaterial
+                      color={point.color}
+                      transparent
+                      opacity={isShown ? 1 : 0.85}
+                    />
+                  </mesh>
+                )}
+
+                {/* A dark ring marks the hovered or pinned voice. */}
+                {isShown && !point.isMine && (
+                  <mesh position={point.pos}>
+                    <sphereGeometry args={[DOT_RADIUS + 0.14, 16, 16]} />
+                    <meshBasicMaterial color="#232a3a" transparent opacity={0.3} />
                   </mesh>
                 )}
               </group>
             );
           })}
-
-          {/* The visitor's own views: small pulsing dots, always on top. */}
-          {layout.youPoints.map((point) => (
-            <group key={point.povId}>
-              {/* Invisible, larger hit target for easy hovering. */}
-              <mesh
-                position={point.pos}
-                visible={false}
-                onPointerOver={(e) => {
-                  e.stopPropagation();
-                  setHoveredId(point.povId);
-                  setCursor("pointer");
-                }}
-                onPointerOut={() => {
-                  setHoveredId(null);
-                  setCursor("auto");
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setPinnedId(pinnedId === point.povId ? null : point.povId);
-                }}
-              >
-                <sphereGeometry args={[0.9, 8, 8]} />
-              </mesh>
-              <YouDot position={point.pos} color={point.color} dotRadius={0.3} />
-              <LabelSprite
-                text="you"
-                position={[point.pos[0], point.pos[1] - 0.7, point.pos[2]]}
-                height={0.46}
-              />
-            </group>
-          ))}
 
           <OrbitControls
             enableDamping
@@ -784,13 +703,13 @@ export default function SpaceView({
             </div>
             <div className="flex items-center gap-2.5">
               <span className="flex w-4 shrink-0 justify-center">
-                <span className="block h-2.5 w-2.5 rounded-full bg-[#3a4152]/40" />
+                <span className="block h-2 w-2 rounded-full bg-[#3a4152]/70" />
               </span>
               <span className="text-[10px] leading-snug text-[#3a4152]">
-                A group of voices, sized by how many lean that way
+                One voice, at its position between the tensions
               </span>
             </div>
-            {layout.youPoints.length > 0 && (
+            {layout.points.some((p) => p.isMine) && (
               <div className="flex items-center gap-2.5">
                 <span className="flex w-4 shrink-0 justify-center">
                   <span className="block h-2 w-2 rounded-full bg-[#232a3a]" />
