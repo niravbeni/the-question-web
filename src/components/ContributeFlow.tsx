@@ -299,7 +299,7 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
               disabled={busy}
               className="mt-8 w-full resize-none rounded-[12px] border border-line bg-paper p-5 font-display text-xl leading-relaxed text-ink placeholder:text-muted focus:border-ink/40 disabled:opacity-60 sm:text-2xl"
             />
-            <div className="mt-8 flex items-start justify-between gap-4">
+            <div className="mt-8 flex flex-col items-start gap-4 sm:flex-row sm:justify-between">
               <div className="inline-flex flex-col items-end">
                 <button
                   type="submit"

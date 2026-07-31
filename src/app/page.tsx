@@ -1,6 +1,6 @@
 import Link from "next/link";
-import Header from "@/components/Header";
 import SnapHashScroll from "@/components/SnapHashScroll";
+import LandscapePreview from "@/components/LandscapePreview";
 import { siteCopy } from "@/content/copy";
 import { getLandscape, getStarters } from "@/lib/db";
 import { ensureSeeded } from "@/lib/seed";
@@ -16,10 +16,21 @@ export default async function LandingPage() {
     // The page is its own scroll container so each screen snaps into place.
     <div className="h-dvh snap-y snap-mandatory overflow-y-auto scroll-smooth">
       <SnapHashScroll />
-      <Header />
 
-      {/* Screen 1: hero */}
-      <section className="flex min-h-dvh snap-start flex-col justify-center border-b border-line">
+      {/* Screen 1: hero. Carries the one quiet way back out to the parent site,
+          sitting where the header wordmark used to be. */}
+      <section className="relative flex min-h-dvh snap-start flex-col justify-center border-b border-line">
+        <div className="absolute inset-x-0 top-0">
+          <div className="mx-auto max-w-6xl px-5 pt-5">
+            <Link
+              href={siteCopy.parentSite.url}
+              className="inline-flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-ink"
+            >
+              <span aria-hidden>←</span>
+              {siteCopy.parentSite.label}
+            </Link>
+          </div>
+        </div>
         <div className="mx-auto w-full max-w-6xl px-5">
           <h1 className="max-w-4xl font-display text-5xl leading-[1.05] text-ink sm:text-7xl">
             {siteCopy.hero.headline}
@@ -35,7 +46,7 @@ export default async function LandingPage() {
               {siteCopy.hero.primaryCta}
             </Link>
             <Link
-              href="/landscape"
+              href="/#landscape"
               className="rounded-full border border-line px-6 py-3 text-sm font-medium text-ink hover:border-ink/40"
             >
               {siteCopy.hero.secondaryCta}
@@ -47,7 +58,7 @@ export default async function LandingPage() {
       {/* Screen 2: sentence starters, full-bleed rows folding down to the screen edge */}
       <section
         id="starters"
-        className="flex h-dvh snap-start flex-col border-b border-line pt-16"
+        className="flex h-dvh snap-start flex-col border-b border-line pt-6"
       >
         <div className="mx-auto w-full max-w-6xl px-5">
           <h2 className="py-6 font-display text-2xl text-ink">
@@ -77,43 +88,8 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* Screen 3: the landscape topics as a grid of numbered tiles */}
-      <section className="flex h-dvh snap-start flex-col pt-16">
-        <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-5">
-          <h2 className="py-6 font-display text-2xl text-ink">
-            {siteCopy.landscapePreview.heading}
-          </h2>
-          <div className="grid flex-1 grid-cols-1 border-l border-line sm:grid-cols-2">
-            {landscape.topics.map((topic, i) => (
-              <Link
-                key={topic.id}
-                href={`/landscape?topic=${i}`}
-                className="group flex flex-col justify-between border-t border-r border-line p-6 transition-colors hover:bg-paper-2/60 sm:p-8"
-              >
-                <span className="text-xs font-medium uppercase tracking-[0.14em] text-muted">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <span className="max-w-md font-display text-2xl leading-snug text-ink sm:text-3xl md:text-4xl">
-                  {topic.label}
-                </span>
-                <span
-                  aria-hidden
-                  className="self-end text-2xl text-muted transition-transform group-hover:translate-x-1 group-hover:text-ink"
-                >
-                  →
-                </span>
-              </Link>
-            ))}
-          </div>
-        </div>
-        <footer className="border-t border-line">
-          <div className="mx-auto max-w-6xl px-5 py-6 text-xs text-muted">
-            <span>
-              {siteCopy.projectTitle} · {siteCopy.projectSubtitle}
-            </span>
-          </div>
-        </footer>
-      </section>
+      {/* Screen 3: the landscape as a carousel of the topic tiles and the spider chart */}
+      <LandscapePreview landscape={landscape} />
     </div>
   );
 }

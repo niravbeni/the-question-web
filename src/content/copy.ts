@@ -8,6 +8,16 @@ export const siteCopy = {
   projectTitle: "Women's Health × AI",
   projectSubtitle: "An IDEO project",
 
+  /**
+   * The page this app is embedded within. When the standalone header is gone,
+   * these give a quiet way back out to the parent site. Edit here to point at
+   * the real IDEO page once it exists.
+   */
+  parentSite: {
+    label: "ideo.com",
+    url: "https://www.ideo.com",
+  },
+
   hero: {
     headline: "AI is entering women's health. Say where you stand.",
     paragraph:

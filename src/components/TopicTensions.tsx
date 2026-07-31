@@ -1,88 +1,54 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { useMyPovIds } from "@/lib/mine";
 import type { LandscapeTension, LandscapeTopic } from "@/lib/types";
 
 /**
- * One topic, opened from the spider chart. Each of its tensions is a block:
- * a line between two opposing pulls, shaded where the voices actually gather,
- * with a dot for each third of the line and one for where you sit.
+ * One topic as a slide of the topic carousel: its label, then each of its
+ * tensions as a block: a line between two opposing pulls, shaded where the
+ * voices actually gather, with a dot for each third of the line and one for
+ * where you sit. The carousel owns the chrome around this, so the slide is
+ * just the reading itself, kept to a narrow column so no line runs the full
+ * width of the page.
  */
 export default function TopicTensions({
   topic,
-  index,
-  count,
   focusPovId,
 }: {
   topic: LandscapeTopic;
-  index: number;
-  count: number;
   focusPovId: string | null;
 }) {
   const myIds = useMyPovIds();
 
-  const prev = index > 0 ? index - 1 : null;
-  const next = index < count - 1 ? index + 1 : null;
-
   return (
-    <main className="flex min-h-0 flex-1 flex-col">
-      <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col px-5">
-        {/* Top bar */}
-        <div className="grid grid-cols-3 items-center border-b border-line py-4">
-          <Link
-            href="/landscape"
-            className="inline-flex items-center gap-1.5 justify-self-start text-sm font-medium text-ink-soft transition-colors hover:text-ink"
-          >
-            <Chevron />
-            All topics
-          </Link>
-          <p className="justify-self-center text-xs font-medium uppercase tracking-[0.14em] text-muted">
-            Topic {index + 1} of {count}
-          </p>
-          <Link
-            href="/#starters"
-            className="justify-self-end rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-paper hover:bg-ink/85"
-          >
-            Add your view
-          </Link>
-        </div>
+    <div className="flex h-full flex-col">
+      <h1 className="pt-7 text-center font-display text-2xl leading-snug text-ink sm:pt-8 sm:text-3xl">
+        {topic.label}
+      </h1>
 
-        <h1 className="pt-7 text-center font-display text-2xl leading-snug text-ink sm:pt-8 sm:text-3xl">
-          {topic.label}
-        </h1>
-
-        {/* Tensions, one block each, parted by hairlines. The inner column is
-            at least as tall as the space available, so a short topic centres
-            its blocks and a long one scrolls instead of spilling over the
-            heading and the footer. */}
-        <div className="min-h-0 flex-1 overflow-y-auto py-6">
-          <div className="flex min-h-full flex-col justify-center divide-y divide-line">
-            {topic.tensions.length === 0 ? (
-              <p className="text-center text-sm text-muted">
-                No tensions have emerged in this topic yet.
-              </p>
-            ) : (
-              topic.tensions.map((tension) => (
-                <TensionBlock
-                  key={tension.id}
-                  tension={tension}
-                  myIds={myIds}
-                  focusPovId={focusPovId}
-                />
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Move between topics without going back out */}
-        <div className="flex items-center justify-between border-t border-line py-4">
-          <TopicStep to={prev} label="Previous topic" dir="left" />
-          <TopicStep to={next} label="Next topic" dir="right" />
+      {/* Tensions, one block each, parted by hairlines. The inner column is
+          at least as tall as the space available, so a short topic centres its
+          blocks and a long one scrolls instead of spilling over the chrome. */}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto flex min-h-full max-w-2xl flex-col justify-center divide-y divide-line">
+          {topic.tensions.length === 0 ? (
+            <p className="text-center text-sm text-muted">
+              No tensions have emerged in this topic yet.
+            </p>
+          ) : (
+            topic.tensions.map((tension) => (
+              <TensionBlock
+                key={tension.id}
+                tension={tension}
+                myIds={myIds}
+                focusPovId={focusPovId}
+              />
+            ))
+          )}
         </div>
       </div>
-    </main>
+    </div>
   );
 }
 
@@ -116,6 +82,22 @@ function density(scores: number[]): number[] {
   }
   const max = Math.max(...bins);
   return max > 0 ? bins.map((b) => b / max) : bins;
+}
+
+/**
+ * The density as one smooth left-to-right gradient rather than a row of solid
+ * bins, so the shading reads as a continuous wash. Each bin becomes a colour
+ * stop and the browser interpolates between them. Positions are rounded so the
+ * server and client render byte-identical strings and hydration stays quiet.
+ */
+function heatGradient(heat: number[]): string {
+  if (heat.length < 2) return "none";
+  const stops = heat.map((value, i) => {
+    const pos = ((i / (heat.length - 1)) * 100).toFixed(2);
+    const alpha = Math.round(5 + value * 40);
+    return `color-mix(in oklab, var(--color-ink) ${alpha}%, transparent) ${pos}%`;
+  });
+  return `linear-gradient(to right, ${stops.join(", ")})`;
 }
 
 function TensionBlock({
@@ -178,13 +160,13 @@ function TensionBlock({
         : null;
 
   return (
-    <section className="py-6 sm:py-8">
+    <section className="py-8 sm:py-10">
       <h2 className="font-display text-lg leading-snug text-ink sm:text-xl">
         {tension.question}
       </h2>
 
       {/* Poles */}
-      <div className="mt-3 flex items-baseline justify-between gap-6">
+      <div className="mt-9 flex items-baseline justify-between gap-6">
         <span className="max-w-[44%] font-display text-sm leading-snug text-ink">
           {tension.poleA}
         </span>
@@ -195,19 +177,10 @@ function TensionBlock({
 
       {/* The line: quietly shaded where the voices gather */}
       <div className="relative mt-3 h-16">
-        <div className="absolute inset-x-0 top-5 flex h-1.5 -translate-y-1/2 overflow-hidden rounded-full bg-line/50">
-          {heat.map((value, i) => (
-            <span
-              key={i}
-              className="h-full flex-1"
-              style={{
-                backgroundColor: `color-mix(in oklab, var(--color-ink) ${Math.round(
-                  5 + value * 40,
-                )}%, transparent)`,
-              }}
-            />
-          ))}
-        </div>
+        <div
+          className="absolute inset-x-0 top-5 h-1.5 -translate-y-1/2 rounded-full bg-line/50"
+          style={{ backgroundImage: heatGradient(heat) }}
+        />
 
         {/* Three fixed dots: what each stretch of the line holds */}
         {(["left", "center", "right"] as SectionKey[]).map((key) => {
@@ -238,14 +211,16 @@ function TensionBlock({
           );
         })}
 
-        {/* Where you sit, hung below the line so it never hides behind a dot */}
+        {/* Where you sit, marked on the line itself. The ring keeps it legible
+            even where it meets one of the section dots, and the label hangs
+            just below without nudging the dot off the line. */}
         {mine && (
           <button
             onMouseEnter={() => setShown("mine")}
             onMouseLeave={() => setShown(null)}
             onClick={() => setShown(shown === "mine" ? null : "mine")}
             aria-label="Read your view"
-            className="absolute top-5 -translate-x-1/2 p-1"
+            className="absolute top-5 -translate-x-1/2 -translate-y-1/2 p-1"
             style={{
               // Inset from the ends so a score at either extreme stays whole
               // instead of being clipped by the edge of the line.
@@ -253,85 +228,33 @@ function TensionBlock({
               zIndex: 3,
             }}
           >
-            <span className="mx-auto block h-2 w-px bg-ink/40" />
             <span
               className={
-                "mx-auto block h-3 w-3 rounded-full bg-ink ring-4 ring-ink/15 transition-transform duration-150 " +
+                "block h-3 w-3 rounded-full bg-ink ring-4 ring-ink/15 transition-transform duration-150 " +
                 (shown === "mine" ? "scale-125" : "")
               }
             />
-            <span className="mt-0.5 block text-center text-[10px] font-semibold uppercase tracking-wider text-ink">
+            <span className="absolute left-1/2 top-full mt-1.5 -translate-x-1/2 text-[10px] font-semibold uppercase tracking-wider text-ink">
               you
             </span>
           </button>
         )}
       </div>
 
-      {/* Reading line for whichever dot is being touched */}
-      <div className="min-h-10 pt-1">
+      {/* Reading line for whichever dot is being touched. Held at a fixed
+          height with the text laid over it, so hovering a dot swaps the words
+          in place without nudging anything below it. */}
+      <div className="relative h-10">
         {panel ? (
-          <p className="text-sm leading-relaxed text-ink-soft">
-            <span className="text-[10px] font-medium uppercase tracking-wider text-muted">
-              {panel.label}
-            </span>
-            <span className="mx-2 text-muted">·</span>
+          <p className="absolute inset-x-0 top-1 text-sm leading-relaxed text-ink-soft">
             {panel.body}
           </p>
         ) : (
-          <p className="text-xs text-muted">
+          <p className="absolute inset-x-0 top-1 text-xs text-muted">
             Hover a dot to read what that stretch of the line holds.
           </p>
         )}
       </div>
     </section>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Small pieces                                                        */
-/* ------------------------------------------------------------------ */
-
-function TopicStep({
-  to,
-  label,
-  dir,
-}: {
-  to: number | null;
-  label: string;
-  dir: "left" | "right";
-}) {
-  if (to === null) {
-    return <span className="text-sm text-muted/50">{label}</span>;
-  }
-  return (
-    <Link
-      href={`/landscape?topic=${to}`}
-      className="inline-flex items-center gap-1.5 text-sm text-ink-soft transition-colors hover:text-ink"
-    >
-      {dir === "left" && <Chevron />}
-      {label}
-      {dir === "right" && <Chevron flip />}
-    </Link>
-  );
-}
-
-function Chevron({ flip = false }: { flip?: boolean }) {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      aria-hidden
-      className={flip ? "-scale-x-100" : undefined}
-    >
-      <path
-        d="M9.5 3.5 5 8l4.5 4.5"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }

@@ -2,26 +2,17 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { useMyPovIds } from "@/lib/mine";
-import type { Landscape, SpiderPoint } from "@/lib/types";
+import type { Landscape } from "@/lib/types";
 
 /**
- * The whole landscape as one shape: a polygon whose corners are the topics
- * that emerged from the views. Every voice is a faint dot inside it, placed by
- * how strongly it pulls toward each topic; a soft marker shows where the crowd
- * as a whole leans, and one clear circle shows where you sit. Corners are the
- * way in: click one to read its tensions. Rendered as a slide of the landscape
- * carousel, so it carries no chrome of its own.
+ * The whole landscape as one stats shape, like a player's attributes in a
+ * sports game. Each corner is a topic; the filled web reaches further toward
+ * the topics more people have spoken to, so its lopsidedness is the shape of
+ * the crowd's attention: which themes pull the most views. Corners are the way
+ * in: each is a clear, clickable node that opens that topic's tensions.
+ * Rendered as a slide of the landscape carousel, so it carries no chrome.
  */
-export default function SpiderView({
-  landscape,
-  focusPovId,
-}: {
-  landscape: Landscape;
-  focusPovId: string | null;
-}) {
-  const myIds = useMyPovIds();
-
+export default function SpiderView({ landscape }: { landscape: Landscape }) {
   if (landscape.topics.length === 0) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -36,10 +27,35 @@ export default function SpiderView({
   return (
     <div className="flex h-full flex-col">
       <div className="flex min-h-0 flex-1 items-center justify-center py-2">
-        <Chart landscape={landscape} myIds={myIds} focusPovId={focusPovId} />
+        <Chart landscape={landscape} />
       </div>
-      <div className="flex justify-center pb-1 pt-3">
-        <Legend />
+
+      {/* Below the chart: on wider screens the corners carry their own labels,
+          so this is just a one-line explanation. On a phone the corners show
+          only their number, so this becomes the key that names each one and
+          doubles as the way in. */}
+      <div className="pb-6 pt-4">
+        <p className="mx-auto hidden max-w-md text-center text-xs leading-relaxed text-muted sm:block">
+          Each corner is a topic. The shape stretches toward the topics more
+          people have spoken to. Tap a corner to open its tensions.
+        </p>
+        <ol className="mx-auto flex max-w-md flex-col gap-1 sm:hidden">
+          {landscape.topics.map((topic, i) => (
+            <li key={topic.id}>
+              <Link
+                href={`/landscape?topic=${i}`}
+                className="flex items-baseline gap-2.5 rounded-md py-1 transition-colors active:bg-paper-2"
+              >
+                <span className="w-5 shrink-0 text-[10px] font-medium tracking-[0.12em] text-muted">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <span className="font-display text-sm leading-snug text-ink">
+                  {topic.label}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ol>
       </div>
     </div>
   );
@@ -50,18 +66,11 @@ export default function SpiderView({
 /* ------------------------------------------------------------------ */
 
 /** Polygon radius as a percentage of the square chart box. */
-const RADIUS = 32;
+const RADIUS = 30;
 /** Rings drawn inside the polygon, as fractions of the radius. */
 const RINGS = [0.34, 0.67];
-/**
- * How close to the polygon's edge a voice may sit, as a fraction of the
- * distance from the centre to the edge along its own direction. Kept under 1
- * so that a voice anchored almost entirely to one topic still reads as inside
- * the shape rather than sitting on the corner marker or its label.
- */
-const MAX_FILL = 0.86;
-/** Deterministic scatter, in polygon radii, so identical weights stay readable. */
-const JITTER = 0.07;
+/** How far the busiest topic's spike reaches, as a fraction of the radius. */
+const PEAK = 0.95;
 
 interface Corner {
   x: number;
@@ -89,109 +98,39 @@ function pct(value: number): string {
   return `${value.toFixed(3)}%`;
 }
 
-/** Stable pseudo-random value in [-0.5, 0.5] from any string. */
-function jitter(seed: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < seed.length; i++) {
-    h ^= seed.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return ((h >>> 0) % 1000) / 1000 - 0.5;
-}
-
-/**
- * Distance from the centre to the polygon's edge in one direction, in radii.
- * The edge is nearer than a corner everywhere between two corners, so a point
- * has to be measured against the edge it actually faces to stay inside.
- */
-function edgeDistance(angle: number, count: number): number {
-  const step = (2 * Math.PI) / count;
-  // Angle to the nearest corner direction, which is where the edge is furthest.
-  const offset = ((angle + Math.PI / 2) % step + step) % step - step / 2;
-  return Math.cos(Math.PI / count) / Math.cos(offset);
-}
-
-/**
- * A voice sits at the weighted average of the corners it relates to, so voices
- * pulled by several topics land between them and single-minded ones land near
- * their own corner. The result is clamped to the polygon, which keeps every
- * voice inside the shape whether there are four topics or six.
- */
-function placePoint(point: SpiderPoint, cs: Corner[]): { x: number; y: number } {
-  let x = 0;
-  let y = 0;
-  cs.forEach((corner, i) => {
-    const w = point.weights[i] ?? 0;
-    x += w * corner.cos;
-    y += w * corner.sin;
-  });
-  x += jitter(point.povId) * JITTER;
-  y += jitter(`${point.povId}-y`) * JITTER;
-
-  const radius = Math.hypot(x, y);
-  if (radius > 0) {
-    const limit = edgeDistance(Math.atan2(y, x), cs.length) * MAX_FILL;
-    if (radius > limit) {
-      x = (x / radius) * limit;
-      y = (y / radius) * limit;
-    }
-  }
-  return { x: 50 + x * RADIUS, y: 50 + y * RADIUS };
-}
-
-/** Mean of a set of points, or null when the set is empty. */
-function meanPoint(
-  points: Array<{ x: number; y: number }>,
-): { x: number; y: number } | null {
-  if (points.length === 0) return null;
-  const sum = points.reduce(
-    (acc, p) => ({ x: acc.x + p.x, y: acc.y + p.y }),
-    { x: 0, y: 0 },
-  );
-  return { x: sum.x / points.length, y: sum.y / points.length };
+/** A point some fraction of the way from the centre out to a corner. */
+function toward(corner: Corner, fraction: number): { x: number; y: number } {
+  return {
+    x: 50 + (corner.x - 50) * fraction,
+    y: 50 + (corner.y - 50) * fraction,
+  };
 }
 
 /* ------------------------------------------------------------------ */
 /* Chart                                                              */
 /* ------------------------------------------------------------------ */
 
-function Chart({
-  landscape,
-  myIds,
-  focusPovId,
-}: {
-  landscape: Landscape;
-  myIds: string[];
-  focusPovId: string | null;
-}) {
+function Chart({ landscape }: { landscape: Landscape }) {
   const topics = landscape.topics;
   const cs = useMemo(() => corners(topics.length), [topics.length]);
 
-  const placed = useMemo(
-    () =>
-      landscape.spiderPoints.map((point) => ({ point, ...placePoint(point, cs) })),
-    [landscape.spiderPoints, cs],
-  );
-
-  // Where the whole room leans: the centre of the cloud of voices. A rough
-  // estimate, not a precise statistic, so it reads as a soft region.
-  const crowd = useMemo(
-    () => meanPoint(placed.map(({ x, y }) => ({ x, y }))),
-    [placed],
-  );
-
-  // Where you sit: the average of the views published from this browser,
-  // collapsed to a single marker so "you" is one clear point on the map.
-  const you = useMemo(() => {
-    const mine = placed.filter(
-      ({ point }) =>
-        point.povId === focusPovId || myIds.includes(point.povId),
-    );
-    return meanPoint(mine.map(({ x, y }) => ({ x, y })));
-  }, [placed, myIds, focusPovId]);
+  // How far each topic's spike reaches: its share of voices against the
+  // busiest topic, so the fullest corner nearly touches its vertex and the
+  // rest fall in proportion. This is the skew the shape is meant to show.
+  const reach = useMemo(() => {
+    const max = Math.max(1, ...topics.map((t) => t.voiceCount));
+    return topics.map((t) => PEAK * (t.voiceCount / max));
+  }, [topics]);
 
   const outline = cs.map((c) => `${c.x},${c.y}`).join(" ");
+  const data = cs
+    .map((c, i) => {
+      const p = toward(c, reach[i]);
+      return `${p.x.toFixed(3)},${p.y.toFixed(3)}`;
+    })
+    .join(" ");
   const line = "var(--color-line)";
+  const hasShape = cs.length >= 3 && reach.some((r) => r > 0);
 
   return (
     <div className="relative aspect-square h-full max-h-full w-auto max-w-full">
@@ -209,69 +148,53 @@ function Chart({
             x2={c.x}
             y2={c.y}
             stroke={line}
-            strokeWidth="0.25"
+            strokeWidth="0.15"
           />
         ))}
 
-        {/* Rings, then the outline: only meaningful from three corners up */}
+        {/* Rings, then the frame: only meaningful from three corners up */}
         {cs.length >= 3 &&
           RINGS.map((r) => (
             <polygon
               key={`ring-${r}`}
               points={cs
-                .map((c) => `${50 + (c.x - 50) * r},${50 + (c.y - 50) * r}`)
+                .map((c) => {
+                  const p = toward(c, r);
+                  return `${p.x},${p.y}`;
+                })
                 .join(" ")}
               fill="none"
               stroke={line}
-              strokeWidth="0.2"
+              strokeWidth="0.15"
             />
           ))}
         {cs.length >= 3 ? (
           <polygon
             points={outline}
             fill="var(--color-paper-2)"
-            fillOpacity="0.5"
+            fillOpacity="0.4"
             stroke={line}
-            strokeWidth="0.4"
+            strokeWidth="0.22"
           />
         ) : (
-          <polyline points={outline} fill="none" stroke={line} strokeWidth="0.4" />
+          <polyline points={outline} fill="none" stroke={line} strokeWidth="0.22" />
+        )}
+
+        {/* The stats shape: how the crowd's attention leans across topics */}
+        {hasShape && (
+          <polygon
+            points={data}
+            fill="var(--color-ink)"
+            fillOpacity="0.1"
+            stroke="var(--color-ink)"
+            strokeOpacity="0.55"
+            strokeWidth="0.3"
+            strokeLinejoin="round"
+          />
         )}
       </svg>
 
-      {/* Voices: faint texture showing the spread, not individually readable */}
-      {placed.map(({ point, x, y }) => (
-        <span
-          key={point.povId}
-          className="pointer-events-none absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-ink/15"
-          style={{ left: pct(x), top: pct(y), zIndex: 2 }}
-        />
-      ))}
-
-      {/* Where the crowd leans: a soft region behind the sharper markers */}
-      {crowd && (
-        <span
-          className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2"
-          style={{ left: pct(crowd.x), top: pct(crowd.y), zIndex: 3 }}
-        >
-          <span className="block h-6 w-6 rounded-full bg-ink/10 ring-1 ring-ink/25" />
-        </span>
-      )}
-
-      {/* Where you sit: one clear circle, the answer to "where am I?" */}
-      {you && (
-        <span
-          className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2"
-          style={{ left: pct(you.x), top: pct(you.y), zIndex: 5 }}
-        >
-          <span className="block h-3.5 w-3.5 rounded-full bg-ink ring-4 ring-ink/15" />
-          <span className="absolute left-1/2 top-full -translate-x-1/2 pt-0.5 text-[10px] font-semibold uppercase tracking-wider text-ink">
-            you
-          </span>
-        </span>
-      )}
-
-      {/* Topics: the corners, and the way into each one */}
+      {/* Topics: each corner is a clickable node plus its label */}
       {cs.map((corner, i) => {
         const topic = topics[i];
         const align =
@@ -286,64 +209,55 @@ function Chart({
             : corner.sin > 0.3
               ? "translate-y-0"
               : "-translate-y-1/2";
-        const textAlign =
+        // On a phone every corner shows a centred number; from `sm` up the
+        // label aligns outward from its corner. Full literals so Tailwind can
+        // see (and generate) each responsive class.
+        const smTextAlign =
           Math.abs(corner.cos) < 0.3
-            ? "text-center"
+            ? "sm:text-center"
             : corner.cos > 0
-              ? "text-left"
-              : "text-right";
+              ? "sm:text-left"
+              : "sm:text-right";
+        const label = toward(corner, 1.16);
         return (
           <div key={topic.id}>
-            {/* Vertex marker */}
-            <span
-              className="pointer-events-none absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rotate-45 border border-ink/50 bg-paper"
-              style={{ left: pct(corner.x), top: pct(corner.y), zIndex: 4 }}
-            />
+            {/* The node sitting on the vertex: a clear, tappable target */}
             <Link
               href={`/landscape?topic=${i}`}
-              className={`group absolute z-[6] block max-w-[9.5rem] px-1.5 py-1 ${align} ${vertical} ${textAlign}`}
-              style={{
-                left: pct(50 + (corner.x - 50) * 1.13),
-                top: pct(50 + (corner.y - 50) * 1.13),
-              }}
+              aria-label={`${topic.label}: open its tensions`}
+              className="group absolute z-[6] -translate-x-1/2 -translate-y-1/2"
+              style={{ left: pct(corner.x), top: pct(corner.y) }}
+            >
+              <span className="block h-3.5 w-3.5 rounded-full border-[1.5px] border-ink/60 bg-paper transition-all duration-150 group-hover:scale-125 group-hover:border-ink group-hover:bg-ink" />
+            </Link>
+
+            {/* The way in: on wider screens a numbered label with the topic's
+                name; on a phone just the number, since the names live in the
+                key below the chart where there is room for them. */}
+            <Link
+              href={`/landscape?topic=${i}`}
+              aria-label={`${topic.label}: open its tensions`}
+              className={`group absolute z-[6] block w-8 px-1 py-1 text-center sm:w-36 sm:px-1.5 ${align} ${vertical} ${smTextAlign}`}
+              style={{ left: pct(label.x), top: pct(label.y) }}
             >
               <span className="block text-[10px] font-medium uppercase tracking-[0.14em] text-muted">
                 {String(i + 1).padStart(2, "0")}
               </span>
-              <span className="mt-0.5 block font-display text-sm leading-snug text-ink underline decoration-transparent decoration-2 underline-offset-4 transition-colors group-hover:decoration-ink sm:text-base">
-                {topic.label}
+              <span className="mt-0.5 hidden font-display text-sm leading-snug text-ink sm:block sm:text-base">
+                <span className="underline decoration-transparent decoration-2 underline-offset-4 transition-colors group-hover:decoration-ink">
+                  {topic.label}
+                </span>
+                <span
+                  aria-hidden
+                  className="ml-1 inline-block text-muted transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-ink"
+                >
+                  →
+                </span>
               </span>
             </Link>
           </div>
         );
       })}
     </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Small pieces                                                        */
-/* ------------------------------------------------------------------ */
-
-function Legend() {
-  return (
-    <ul className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5">
-      <li className="flex items-center gap-2 text-xs text-muted">
-        <span className="h-2 w-2 shrink-0 rounded-full bg-ink/15" />
-        a voice
-      </li>
-      <li className="flex items-center gap-2 text-xs text-muted">
-        <span className="h-4 w-4 shrink-0 rounded-full bg-ink/10 ring-1 ring-ink/25" />
-        where most lean
-      </li>
-      <li className="flex items-center gap-2 text-xs text-muted">
-        <span className="h-3 w-3 shrink-0 rounded-full bg-ink ring-2 ring-ink/15" />
-        you
-      </li>
-      <li className="flex items-center gap-2 text-xs text-muted">
-        <span className="h-2 w-2 shrink-0 rotate-45 border border-ink/50" />
-        a topic
-      </li>
-    </ul>
   );
 }

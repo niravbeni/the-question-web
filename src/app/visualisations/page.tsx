@@ -1,4 +1,3 @@
-import Header from "@/components/Header";
 import VisualisationsView from "@/components/VisualisationsView";
 import { getLandscape } from "@/lib/db";
 import { ensureSeeded } from "@/lib/seed";
@@ -10,10 +9,5 @@ export default async function VisualisationsPage() {
   await ensureSeeded();
   const landscape = await getLandscape();
 
-  return (
-    <>
-      <Header />
-      <VisualisationsView landscape={landscape} />
-    </>
-  );
+  return <VisualisationsView landscape={landscape} />;
 }

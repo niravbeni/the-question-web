@@ -362,7 +362,7 @@ Derive from them:
 
 3. "tensions": exactly 2 creative tensions: the axes these views ACTUALLY divide along. For each:
    - "pole_a" and "pole_b": short phrases (max 6 words), each a position that at least one of these views genuinely holds or clearly leans toward. Both poles must have real merit: never a reasonable position versus a strawman, and never generic axes like optimism vs pessimism or pro-AI vs anti-AI. Find the specific trade-off: what would one group protect that the other would spend?
-   - "question": one sentence naming what is truly at stake between the poles.
+   - "question": a short, direct question of at most 12 words naming what is at stake between the poles. No preamble, no stacked clauses; cut every word that does not earn its place. Prefer "Guard privacy or pool data for research?" over a long either/or sentence.
    A reader should be able to point at specific views above that sit near each pole. If you cannot, the tension is invented: replace it with a sharper one.
 
 Return exactly two tensions. Even if these views mostly agree, surface the two most meaningful fault lines rather than manufacturing hostility.

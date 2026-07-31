@@ -84,10 +84,11 @@ src/
     mine.ts                        localStorage "which dots are mine" identity
   components/
     ContributeFlow.tsx             write -> chat -> review -> published
-    LandscapeOverview.tsx          Carousel: spider chart and topic grid
-    SpiderView.tsx                 Spider chart: topics as corners, voices inside
+    Carousel.tsx                   Shared swipe/arrow/dot carousel mechanics
+    LandscapePreview.tsx           Home screen 3: topic tiles and spider chart
+    SpiderView.tsx                 Popularity radar: topics as corners, shape by voice count
+    TopicCarousel.tsx              /landscape: one topic's tensions per slide
     TopicTensions.tsx              One topic's tensions: shaded lines, "you" marker
-    Header.tsx
 ```
 
 ## The recalibration pipeline

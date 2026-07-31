@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import Header from "@/components/Header";
 import ContributeFlow from "@/components/ContributeFlow";
 import { getStarterById } from "@/lib/db";
 
@@ -16,7 +15,6 @@ export default async function ContributePage({
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <Header />
       <ContributeFlow starter={starter} />
     </div>
   );
