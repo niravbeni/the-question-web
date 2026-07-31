@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { isAdminRequest } from "@/lib/adminAuth";
 import { getStarters, getStarterById, resetStarters, updateStarter } from "@/lib/db";
 
@@ -51,6 +52,8 @@ export async function PATCH(req: Request) {
     );
   }
   await updateStarter(body.id, { text, shortLabel, placeholder });
+  // Drop the cached static render so the edited sentence shows on the next load.
+  revalidatePath(`/contribute/${body.id}`);
   return NextResponse.json({ ok: true });
 }
 
@@ -60,5 +63,7 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
   await resetStarters();
+  // A reset touches every starter, so clear all the cached contribute pages.
+  revalidatePath("/contribute/[starterId]", "page");
   return NextResponse.json({ ok: true, reset: true });
 }
