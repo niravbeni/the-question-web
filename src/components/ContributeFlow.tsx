@@ -1,10 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { siteCopy } from "@/content/copy";
 import { addMyPovId } from "@/lib/mine";
+import LoadingDots from "@/components/LoadingDots";
 import type { ChatMessage, SentenceStarter } from "@/lib/types";
 
 type Phase = "write" | "chat" | "review" | "published";
@@ -192,6 +193,26 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
     void runExchange(next, true);
   }
 
+  // On the review step, Enter confirms even before the summary field is
+  // focused, so it can be published straight from the keyboard without first
+  // clicking into the text. While the field is focused its own handler owns
+  // Enter (and Shift+Enter still makes a newline), so this only fills the gap.
+  useEffect(() => {
+    if (phase !== "review") return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Enter" || e.shiftKey) return;
+      const el = document.activeElement;
+      if (el instanceof HTMLTextAreaElement || el instanceof HTMLInputElement)
+        return;
+      e.preventDefault();
+      if (!publishing && summary.trim()) void publish();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // publish is stable enough for this step; re-bind when its guards change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, publishing, summary]);
+
   async function publish() {
     setPublishing(true);
     setError(null);
@@ -356,9 +377,19 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
             <button
               onClick={publish}
               disabled={publishing || !summary.trim()}
-              className="rounded-full bg-ink px-7 py-3.5 text-sm font-medium text-paper hover:bg-ink/85 disabled:opacity-40"
+              className={
+                "inline-flex items-center gap-2.5 rounded-full bg-ink px-7 py-3.5 text-sm font-medium text-paper transition-opacity hover:bg-ink/85 " +
+                (publishing ? "cursor-wait" : "disabled:opacity-40")
+              }
             >
-              {publishing ? "Publishing…" : siteCopy.consent.publishButton}
+              {publishing ? (
+                <>
+                  Publishing
+                  <LoadingDots size="sm" />
+                </>
+              ) : (
+                siteCopy.consent.publishButton
+              )}
             </button>
             {!publishing && summary.trim() && (
               <div className="mt-2">

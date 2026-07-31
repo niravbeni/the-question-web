@@ -47,22 +47,20 @@ export default function TopicCarousel({
   if (count === 0) {
     return (
       <main className="flex min-h-0 flex-1 flex-col">
-        <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col px-5">
-          <div className="flex items-center border-b border-line py-4">
-            <Link
-              href="/#landscape"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft transition-colors hover:text-ink"
-            >
-              <Chevron dir="left" />
-              Back
-            </Link>
-          </div>
-          <div className="flex flex-1 items-center justify-center">
-            <p className="max-w-sm text-center font-display text-xl leading-snug text-ink-soft">
-              The landscape is still forming. Add the first views and topics
-              will emerge.
-            </p>
-          </div>
+        <div className="flex items-center border-b border-line px-5 py-4 sm:px-8">
+          <Link
+            href="/#landscape"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft transition-colors hover:text-ink"
+          >
+            <Chevron dir="left" />
+            Back
+          </Link>
+        </div>
+        <div className="flex flex-1 items-center justify-center px-5">
+          <p className="max-w-sm text-center font-display text-xl leading-snug text-ink-soft">
+            The landscape is still forming. Add the first views and topics will
+            emerge.
+          </p>
         </div>
       </main>
     );
@@ -70,9 +68,10 @@ export default function TopicCarousel({
 
   return (
     <main className="min-h-0 flex-1">
-      <div className="mx-auto flex h-full max-w-6xl flex-col px-5">
-        {/* Top bar: the way back, which topic, and the way in */}
-        <div className="grid grid-cols-3 items-center border-b border-line py-4">
+      <div className="flex h-full flex-col">
+        {/* Top bar spans the full width: the way back at the left edge, which
+            topic in the middle, and the way in at the right edge. */}
+        <div className="grid grid-cols-3 items-center border-b border-line px-5 py-4 sm:px-8">
           <Link
             href="/#landscape"
             className="inline-flex items-center gap-1.5 justify-self-start text-sm font-medium text-ink-soft transition-colors hover:text-ink"
@@ -105,8 +104,8 @@ export default function TopicCarousel({
           ))}
         </CarouselTrack>
 
-        {/* Bottom bar: arrows in the corners, dots in the middle */}
-        <div className="flex items-center justify-between border-t border-line py-4">
+        {/* Bottom bar, also full width: arrows at the edges, dots centered. */}
+        <div className="flex items-center justify-between border-t border-line px-5 py-4 sm:px-8">
           <CarouselArrow
             dir="left"
             onClick={prev}

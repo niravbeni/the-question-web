@@ -22,7 +22,7 @@ export default function TopicTensions({
   const myIds = useMyPovIds();
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col px-5">
       <h1 className="pt-7 text-center font-display text-2xl leading-snug text-ink sm:pt-8 sm:text-3xl">
         {topic.label}
       </h1>
