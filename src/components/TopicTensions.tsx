@@ -95,8 +95,9 @@ function heatGradient(heat: number[]): string {
   const stops = heat.map((value, i) => {
     const pos = ((i / (heat.length - 1)) * 100).toFixed(2);
     // From near-white where voices are sparse up to the full neon accent
-    // (the same yellow as the 3D asterisks) where they gather.
-    const amount = Math.round(8 + value * 92);
+    // (the same yellow as the 3D asterisks) where they gather. The floor
+    // keeps sparsely-voiced lines from washing out entirely.
+    const amount = Math.round(14 + value * 86);
     return `color-mix(in oklab, #d9ff00 ${amount}%, white) ${pos}%`;
   });
   return `linear-gradient(to right, ${stops.join(", ")})`;

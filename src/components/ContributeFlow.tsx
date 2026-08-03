@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { siteCopy } from "@/content/copy";
 import { addMyPovId } from "@/lib/mine";
 import LoadingDots from "@/components/LoadingDots";
@@ -62,7 +61,6 @@ interface StreamEvent {
  * publish, and get sent to your place on the landscape.
  */
 export default function ContributeFlow({ starter }: { starter: SentenceStarter }) {
-  const router = useRouter();
   const [phase, setPhase] = useState<Phase>("write");
   const [continuation, setContinuation] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -233,7 +231,11 @@ export default function ContributeFlow({ starter }: { starter: SentenceStarter }
       }
       addMyPovId(data.povId);
       setPhase("published");
-      router.push(`/landscape?pov=${data.povId}`);
+      // A full document load, deliberately: the client router may hold a
+      // prefetched landscape page from before this publish, which would show
+      // the landscape without the view that was just added. The server has
+      // just revalidated both pages, so a fresh load is guaranteed current.
+      window.location.assign(`/landscape?pov=${data.povId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Publishing failed.");
     } finally {
