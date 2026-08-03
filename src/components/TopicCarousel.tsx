@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import TopicTensions from "@/components/TopicTensions";
+import LoadingDots from "@/components/LoadingDots";
 import {
   useCarousel,
   CarouselTrack,
@@ -24,8 +25,51 @@ import type { Landscape } from "@/lib/types";
  * explicit `?topic=i`, else the topic holding a `?pov=` voice, else the first.
  * On a client navigation these params are known immediately, so tapping a
  * topic on the home page lands on the right slide with no server round-trip.
+ *
+ * Someone landing here straight after publishing can outrun the cache: the
+ * page may have been rendered moments before their view was added, so their
+ * `?pov=` is nowhere in the data and their dot would be missing. When that
+ * happens, hold on a brief loading beat and fetch the live landscape from the
+ * API, so the first thing they see is the topic with their own voice on it.
  */
 export default function TopicCarousel({ landscape }: { landscape: Landscape }) {
+  const searchParams = useSearchParams();
+  const [pov] = useState(() => searchParams.get("pov"));
+  const stale =
+    pov !== null && !landscape.spiderPoints.some((p) => p.povId === pov);
+
+  const [fresh, setFresh] = useState<Landscape | null>(null);
+  useEffect(() => {
+    if (!stale) return;
+    let cancelled = false;
+    fetch("/api/landscape")
+      .then((res) => res.json())
+      .then((data: { landscape?: Landscape }) => {
+        if (!cancelled) setFresh(data.landscape ?? landscape);
+      })
+      .catch(() => {
+        // The cached render is still a working page; show it rather than hang.
+        if (!cancelled) setFresh(landscape);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // Runs once: `stale` and `landscape` are fixed for the life of the page.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (stale && !fresh) {
+    return (
+      <main className="flex min-h-0 flex-1 items-center justify-center text-ink-soft">
+        <LoadingDots />
+      </main>
+    );
+  }
+
+  return <TopicCarouselInner landscape={fresh ?? landscape} />;
+}
+
+function TopicCarouselInner({ landscape }: { landscape: Landscape }) {
   const topics = landscape.topics;
   const count = topics.length;
 
