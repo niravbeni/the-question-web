@@ -349,7 +349,7 @@ function YouDot({
 }
 
 /** Neon accent for the cluster-centre asterisk. */
-const RETICLE_COLOR = "#d4f24a";
+const RETICLE_COLOR = "#d9ff00";
 
 /** Dark navy used for the asterisk's outlines. */
 const RETICLE_EDGE_COLOR = "#232a3a";
