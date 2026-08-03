@@ -379,28 +379,35 @@ const RETICLE_BAR_QUATS: THREE.Quaternion[] = (
 
 /**
  * A cluster's centre: a neon 3D asterisk. Solid bars cross through the
- * middle like the flat glyph, depth-tested so they occlude correctly, and
- * each bar carries a back-side navy shell that shows as a thin outline
- * around the shape's silhouette.
+ * middle like the flat glyph, depth-tested so they occlude correctly. Each
+ * bar draws its own navy edge lines, so where the bars meet you see every
+ * bar's borders running into the crossing instead of one flat neon mass.
  */
 function Reticle() {
   const len = 0.85; // full bar length, passing through the centre
   const thick = 0.055;
-  const edge = 0.018; // outline thickness
+  const geoms = useMemo(() => {
+    const bar = new THREE.BoxGeometry(len, thick, thick);
+    return { bar, edges: new THREE.EdgesGeometry(bar) };
+  }, [len, thick]);
+
   return (
     <group>
       {RETICLE_BAR_QUATS.map((q, i) => (
         <group key={i} quaternion={q}>
-          <mesh>
-            <boxGeometry
-              args={[len + edge * 2, thick + edge * 2, thick + edge * 2]}
+          {/* Fill, pushed back a hair so the edge lines draw cleanly. */}
+          <mesh geometry={geoms.bar}>
+            <meshBasicMaterial
+              color={RETICLE_COLOR}
+              polygonOffset
+              polygonOffsetFactor={1}
+              polygonOffsetUnits={1}
             />
-            <meshBasicMaterial color={RETICLE_EDGE_COLOR} side={THREE.BackSide} />
           </mesh>
-          <mesh>
-            <boxGeometry args={[len, thick, thick]} />
-            <meshBasicMaterial color={RETICLE_COLOR} />
-          </mesh>
+          {/* The bar's actual edges, outlined in navy. */}
+          <lineSegments geometry={geoms.edges}>
+            <lineBasicMaterial color={RETICLE_EDGE_COLOR} />
+          </lineSegments>
         </group>
       ))}
     </group>
