@@ -351,61 +351,68 @@ function YouDot({
 /** Neon accent for the cluster-centre asterisk. */
 const RETICLE_COLOR = "#d4f24a";
 
-/**
- * Seven bar directions — three orthogonal axes plus the four cube diagonals —
- * so the centre reads as a 3D asterisk / starburst from any angle. Each
- * rotation turns a +x-aligned bar to point down its direction.
- */
-const RETICLE_ROTATIONS: [number, number, number][] = (
-  [
-    [1, 0, 0],
-    [0, 1, 0],
-    [0, 0, 1],
-    [1, 1, 1],
-    [1, 1, -1],
-    [1, -1, 1],
-    [-1, 1, 1],
-  ] as const
-).map((d) => {
-  const q = new THREE.Quaternion().setFromUnitVectors(
-    new THREE.Vector3(1, 0, 0),
-    new THREE.Vector3(d[0], d[1], d[2]).normalize(),
-  );
-  const e = new THREE.Euler().setFromQuaternion(q);
-  return [e.x, e.y, e.z] as [number, number, number];
-});
+/** Dark navy used for the asterisk's outlines. */
+const RETICLE_EDGE_COLOR = "#232a3a";
 
 /**
- * A cluster's centre: a small neon 3D asterisk. Reads as a structural
- * "centre here" marker from any angle, without being mistaken for one of the
- * coloured voice dots.
+ * Fourteen spoke directions — the six axes plus the eight cube diagonals —
+ * spread evenly like a sphere so the centre reads as a 3D asterisk from any
+ * angle. Each quaternion turns a +y-aligned cylinder down its direction.
+ */
+const SPOKE_DIRS: THREE.Vector3[] = (
+  [
+    [1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1],
+    [1, 1, 1], [1, 1, -1], [1, -1, 1], [1, -1, -1],
+    [-1, 1, 1], [-1, 1, -1], [-1, -1, 1], [-1, -1, -1],
+  ] as const
+).map((d) => new THREE.Vector3(d[0], d[1], d[2]).normalize());
+
+const SPOKE_QUATS: THREE.Quaternion[] = SPOKE_DIRS.map((d) =>
+  new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d),
+);
+
+/**
+ * A cluster's centre: a small neon 3D asterisk, built as a hub sphere plus
+ * fourteen outward spokes. Everything is depth-tested so the parts occlude
+ * each other correctly, and each piece carries a back-side navy shell that
+ * shows as a thin outline around its silhouette.
  */
 function Reticle() {
-  const len = 0.85;
-  const thick = 0.045;
-  // Half-thickness of the dark outline drawn around each bar.
-  const edge = 0.022;
+  const tip = 0.46; // how far spokes reach from the centre
+  const hub = 0.1; // radius of the centre sphere
+  const start = 0.08; // spokes begin just inside the hub surface
+  const spokeR = 0.032;
+  const edge = 0.018; // outline thickness
+  const len = tip - start;
+  const mid = start + len / 2;
+
   return (
     <group>
-      {/* Each bar draws its navy outline then its neon fill, in its own
-          render-order slot, so later bars outline themselves over earlier
-          ones and the crossing at the centre stays legible. */}
-      {RETICLE_ROTATIONS.map((rot, i) => (
-        <group key={i} rotation={rot}>
-          <mesh renderOrder={9 + i * 0.1}>
-            <boxGeometry
-              args={[len + edge * 2, thick + edge * 2, thick + edge * 2]}
+      {/* The middle: a visible hub with its own outline. */}
+      <mesh>
+        <sphereGeometry args={[hub + edge, 20, 20]} />
+        <meshBasicMaterial color={RETICLE_EDGE_COLOR} side={THREE.BackSide} />
+      </mesh>
+      <mesh>
+        <sphereGeometry args={[hub, 20, 20]} />
+        <meshBasicMaterial color={RETICLE_COLOR} />
+      </mesh>
+
+      {SPOKE_DIRS.map((d, i) => (
+        <group
+          key={i}
+          position={[d.x * mid, d.y * mid, d.z * mid]}
+          quaternion={SPOKE_QUATS[i]}
+        >
+          <mesh>
+            <cylinderGeometry
+              args={[spokeR + edge, spokeR + edge, len + edge * 2, 10]}
             />
-            <meshBasicMaterial color="#232a3a" transparent opacity={0.95} depthTest={false} />
+            <meshBasicMaterial color={RETICLE_EDGE_COLOR} side={THREE.BackSide} />
           </mesh>
-          <mesh renderOrder={9.05 + i * 0.1}>
-            <boxGeometry args={[len, thick, thick]} />
-            <meshBasicMaterial
-              color={RETICLE_COLOR}
-              transparent
-              opacity={0.95}
-              depthTest={false}
-            />
+          <mesh>
+            <cylinderGeometry args={[spokeR, spokeR, len, 10]} />
+            <meshBasicMaterial color={RETICLE_COLOR} />
           </mesh>
         </group>
       ))}
