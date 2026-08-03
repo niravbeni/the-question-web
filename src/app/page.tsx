@@ -33,7 +33,7 @@ export default async function LandingPage() {
         className="relative flex min-h-dvh snap-start flex-col justify-center border-b border-line"
       >
         <div className="absolute inset-x-0 top-0">
-          <div className="mx-auto max-w-6xl px-5 pt-5">
+          <div className="px-5 pt-5">
             <Link
               href={siteCopy.parentSite.url}
               className="inline-flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-ink"
