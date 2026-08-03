@@ -569,18 +569,16 @@ const TOUR_IDLE_MS = 4000;
 /** How far the camera sits from a cluster while visiting it. */
 const TOUR_DISTANCE = 12;
 /** How long the camera lingers on each cluster before moving on. */
-const TOUR_DWELL_MS = 3400;
+const TOUR_DWELL_MS = 4200;
+/** Travel time bounds for one cluster-to-cluster move, in seconds. */
+const TOUR_MOVE_MIN_S = 2.6;
+const TOUR_MOVE_MAX_S = 5.5;
 
 const WORLD_UP = new THREE.Vector3(0, 1, 0);
 
-/** Framerate-independent exponential glide toward a destination. */
-function dampToward(
-  v: THREE.Vector3,
-  dest: THREE.Vector3,
-  lambda: number,
-  dt: number,
-) {
-  v.lerp(dest, 1 - Math.exp(-lambda * dt));
+/** Quintic smootherstep: eases in and out with zero velocity at both ends. */
+function smootherstep(u: number): number {
+  return u * u * u * (u * (u * 6 - 15) + 10);
 }
 
 /**
@@ -608,10 +606,16 @@ function CameraTour({
     lastUser: 0,
     active: false,
     idx: 0,
-    phase: "approach" as "approach" | "dwell",
+    phase: "move" as "move" | "dwell",
+    moveStart: 0,
+    moveDur: 1,
     dwellStart: 0,
     center: new THREE.Vector3(),
-    dest: new THREE.Vector3(),
+    startPos: new THREE.Vector3(),
+    startTgt: new THREE.Vector3(),
+    endPos: new THREE.Vector3(),
+    arcDir: new THREE.Vector3(),
+    arcHeight: 0,
   });
 
   // Any drag, zoom or tap resets the idle clock and hands control back.
@@ -651,6 +655,8 @@ function CameraTour({
     const beginStep = (idx: number) => {
       t.idx = idx;
       t.center.set(...stops[idx]);
+      t.startPos.copy(camera.position);
+      t.startTgt.copy(controls.target);
       // Approach from wherever the camera already is, kept slightly above,
       // so the move is a smooth swing rather than a cut.
       const dir = camera.position.clone().sub(t.center);
@@ -658,8 +664,25 @@ function CameraTour({
       dir.normalize();
       dir.y = Math.max(dir.y, 0.25);
       dir.normalize();
-      t.dest.copy(t.center).addScaledVector(dir, TOUR_DISTANCE);
-      t.phase = "approach";
+      t.endPos.copy(t.center).addScaledVector(dir, TOUR_DISTANCE);
+
+      // Travel time scales with the distance so long hops stay unhurried.
+      const dist = t.startPos.distanceTo(t.endPos);
+      t.moveDur = Math.min(
+        TOUR_MOVE_MAX_S,
+        Math.max(TOUR_MOVE_MIN_S, dist * 0.16),
+      );
+      t.moveStart = now;
+
+      // The path bows outward (away from the plot's middle) and slightly up,
+      // so the camera sweeps around the scene instead of cutting through it.
+      const mid = t.startPos.clone().add(t.endPos).multiplyScalar(0.5);
+      mid.y *= 0.3;
+      if (mid.lengthSq() < 1) mid.set(0, 1, 0);
+      t.arcDir.copy(mid.normalize().addScaledVector(WORLD_UP, 0.45).normalize());
+      t.arcHeight = Math.min(4, dist * 0.22);
+
+      t.phase = "move";
     };
 
     if (!t.active) {
@@ -667,22 +690,25 @@ function CameraTour({
       beginStep(t.idx);
     }
 
-    const dt = Math.min(delta, 0.1);
-    dampToward(camera.position, t.dest, 2.1, dt);
-    dampToward(controls.target, t.center, 2.6, dt);
-    controls.update();
-
-    if (t.phase === "approach") {
-      if (
-        camera.position.distanceTo(t.dest) < 0.3 &&
-        controls.target.distanceTo(t.center) < 0.2
-      ) {
+    if (t.phase === "move") {
+      const u = Math.min(1, (now - t.moveStart) / (t.moveDur * 1000));
+      const e = smootherstep(u);
+      camera.position.lerpVectors(t.startPos, t.endPos, e);
+      camera.position.addScaledVector(t.arcDir, Math.sin(Math.PI * e) * t.arcHeight);
+      controls.target.lerpVectors(t.startTgt, t.center, e);
+      controls.update();
+      if (u >= 1) {
         t.phase = "dwell";
         t.dwellStart = now;
       }
     } else {
-      // Linger with a slow drift around the cluster before moving on.
-      t.dest.sub(t.center).applyAxisAngle(WORLD_UP, 0.16 * dt).add(t.center);
+      // Linger with a slow drift around the cluster, easing into the motion
+      // so there is no kick after the arrival's gentle stop.
+      const dt = Math.min(delta, 0.1);
+      const settle = Math.min(1, (now - t.dwellStart) / 1200);
+      const ang = 0.1 * settle * dt;
+      camera.position.sub(t.center).applyAxisAngle(WORLD_UP, ang).add(t.center);
+      controls.update();
       if (now - t.dwellStart > TOUR_DWELL_MS) {
         beginStep((t.idx + 1) % stops.length);
       }
