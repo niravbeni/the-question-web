@@ -24,8 +24,11 @@ export const siteCopy = {
       "AI is coming for women's health.",
       "Where do you stand?",
     ],
-    paragraph:
-      "Finish one sentence, in your own words. Three short questions later, your view joins an anonymous landscape of public opinion.",
+    /** Each sentence starts on its own line. */
+    paragraphLines: [
+      "Finish one sentence, in your own words.",
+      "Three short questions later, your view joins an anonymous landscape of public opinion.",
+    ],
     primaryCta: "Share your view",
     secondaryCta: "See the landscape",
   },

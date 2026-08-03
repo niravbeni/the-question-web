@@ -52,7 +52,11 @@ export default async function LandingPage() {
             ))}
           </h1>
           <p className="mt-6 max-w-2xl text-base leading-relaxed text-ink-soft">
-            {siteCopy.hero.paragraph}
+            {siteCopy.hero.paragraphLines.map((line) => (
+              <span key={line} className="block">
+                {line}
+              </span>
+            ))}
           </p>
           <div className="mt-9 flex flex-wrap gap-3">
             <Link
