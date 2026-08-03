@@ -355,27 +355,25 @@ const RETICLE_COLOR = "#d4f24a";
 const RETICLE_EDGE_COLOR = "#232a3a";
 
 /**
- * Bar directions for the asterisk: the flat six-ray glyph spun around its
- * vertical axis. One vertical bar, then bars tilted 60 degrees from vertical
- * at evenly spaced azimuths. Every bar passes through the centre, exactly
- * like the flat asterisk's strokes. Each quaternion turns a +x-aligned bar
- * down its direction.
+ * Bar directions for the asterisk: the three orthogonal axes plus the four
+ * cube diagonals, every bar passing through the centre, so the crossing
+ * reads as a 3D asterisk from any angle. Each quaternion turns a +x-aligned
+ * bar down its direction.
  */
-const RETICLE_BAR_QUATS: THREE.Quaternion[] = [
-  new THREE.Vector3(0, 1, 0),
-  ...[0, 45, 90, 135].map((deg) => {
-    const az = (deg * Math.PI) / 180;
-    const tilt = Math.PI / 3;
-    return new THREE.Vector3(
-      Math.sin(tilt) * Math.cos(az),
-      Math.cos(tilt),
-      Math.sin(tilt) * Math.sin(az),
-    );
-  }),
-].map((d) =>
+const RETICLE_BAR_QUATS: THREE.Quaternion[] = (
+  [
+    [1, 0, 0],
+    [0, 1, 0],
+    [0, 0, 1],
+    [1, 1, 1],
+    [1, 1, -1],
+    [1, -1, 1],
+    [-1, 1, 1],
+  ] as const
+).map((d) =>
   new THREE.Quaternion().setFromUnitVectors(
     new THREE.Vector3(1, 0, 0),
-    d.normalize(),
+    new THREE.Vector3(d[0], d[1], d[2]).normalize(),
   ),
 );
 
@@ -386,7 +384,7 @@ const RETICLE_BAR_QUATS: THREE.Quaternion[] = [
  * around the shape's silhouette.
  */
 function Reticle() {
-  const len = 0.92; // full bar length, passing through the centre
+  const len = 0.85; // full bar length, passing through the centre
   const thick = 0.055;
   const edge = 0.018; // outline thickness
   return (
