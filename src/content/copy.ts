@@ -19,9 +19,13 @@ export const siteCopy = {
   },
 
   hero: {
-    headline: "AI is entering women's health. Say where you stand.",
+    /** Each entry renders as its own line, kept whole (no wrapping). */
+    headlineLines: [
+      "AI is coming for women's health.",
+      "Where do you stand?",
+    ],
     paragraph:
-      "Finish a sentence in your own words. Three short questions later, your view joins an anonymous landscape of where people stand.",
+      "Finish one sentence, in your own words. Three short questions later, your view joins an anonymous landscape of public opinion.",
     primaryCta: "Share your view",
     secondaryCta: "See the landscape",
   },

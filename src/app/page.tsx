@@ -44,8 +44,12 @@ export default async function LandingPage() {
           </div>
         </div>
         <div className="mx-auto w-full max-w-6xl px-5">
-          <h1 className="max-w-4xl font-display text-5xl leading-[1.05] text-ink sm:text-7xl">
-            {siteCopy.hero.headline}
+          <h1 className="font-display text-[clamp(1rem,5.5vw,4.5rem)] leading-[1.08] text-ink">
+            {siteCopy.hero.headlineLines.map((line) => (
+              <span key={line} className="block whitespace-nowrap">
+                {line}
+              </span>
+            ))}
           </h1>
           <p className="mt-6 max-w-2xl text-base leading-relaxed text-ink-soft">
             {siteCopy.hero.paragraph}
