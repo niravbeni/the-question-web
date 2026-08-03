@@ -380,30 +380,17 @@ const RETICLE_ROTATIONS: [number, number, number][] = (
  * "centre here" marker from any angle, without being mistaken for one of the
  * coloured voice dots.
  */
+/** One bar of the asterisk, shared by every reticle instance. */
+const RETICLE_BAR_GEOMETRY = new THREE.BoxGeometry(0.85, 0.07, 0.07);
+/** The bar's actual edges, drawn as thin navy lines over the neon faces. */
+const RETICLE_EDGE_GEOMETRY = new THREE.EdgesGeometry(RETICLE_BAR_GEOMETRY);
+
 function Reticle() {
-  const len = 0.85;
-  const thick = 0.07;
-  // Outline via inverted hull: a slightly larger navy copy of each bar drawn
-  // back-faced beneath the neon one reads as a thin outline from any angle.
-  const outline = 0.06;
   return (
     <group>
       {RETICLE_ROTATIONS.map((rot, i) => (
         <group key={i} rotation={rot}>
-          <mesh renderOrder={9}>
-            <boxGeometry
-              args={[len + outline, thick + outline, thick + outline]}
-            />
-            <meshBasicMaterial
-              color="#232a3a"
-              side={THREE.BackSide}
-              transparent
-              opacity={0.95}
-              depthTest={false}
-            />
-          </mesh>
-          <mesh renderOrder={10}>
-            <boxGeometry args={[len, thick, thick]} />
+          <mesh geometry={RETICLE_BAR_GEOMETRY} renderOrder={10}>
             <meshBasicMaterial
               color={RETICLE_COLOR}
               transparent
@@ -411,6 +398,16 @@ function Reticle() {
               depthTest={false}
             />
           </mesh>
+          {/* Tracing every edge (ends and lengthwise) keeps the shape's
+              internal detail readable, not just its silhouette. */}
+          <lineSegments geometry={RETICLE_EDGE_GEOMETRY} renderOrder={11}>
+            <lineBasicMaterial
+              color="#232a3a"
+              transparent
+              opacity={0.9}
+              depthTest={false}
+            />
+          </lineSegments>
         </group>
       ))}
     </group>
