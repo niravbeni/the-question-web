@@ -181,7 +181,7 @@ function TensionBlock({
       {/* The line: quietly shaded where the voices gather */}
       <div className="relative mt-3 h-16">
         <div
-          className="absolute inset-x-0 top-5 h-1.5 -translate-y-1/2 rounded-full border border-black/25 bg-line/50"
+          className="absolute inset-x-0 top-5 h-1.5 -translate-y-1/2 rounded-full border border-ink/45 bg-line/50"
           style={{ backgroundImage: heatGradient(heat) }}
         />
 
@@ -203,10 +203,12 @@ function TensionBlock({
               <span
                 className={
                   "block h-3 w-3 rounded-full border transition-all duration-150 " +
-                  (empty
-                    ? "border-line bg-paper"
-                    : active
-                      ? "scale-110 border-ink bg-ink"
+                  // The outline stays dark even where nobody stands yet, so the
+                  // line's structure never fades; only the fill signals emptiness.
+                  (active
+                    ? "scale-110 border-ink bg-ink"
+                    : empty
+                      ? "border-ink/70 bg-paper"
                       : "border-ink/70 bg-paper hover:bg-ink/15")
                 }
               />
