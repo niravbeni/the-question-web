@@ -562,6 +562,136 @@ function PlotBox() {
   );
 }
 
+/* ---------------- idle camera tour ---------------- */
+
+/** Milliseconds without interaction before the tour takes over. */
+const TOUR_IDLE_MS = 4000;
+/** How far the camera sits from a cluster while visiting it. */
+const TOUR_DISTANCE = 12;
+/** How long the camera lingers on each cluster before moving on. */
+const TOUR_DWELL_MS = 3400;
+
+const WORLD_UP = new THREE.Vector3(0, 1, 0);
+
+/** Framerate-independent exponential glide toward a destination. */
+function dampToward(
+  v: THREE.Vector3,
+  dest: THREE.Vector3,
+  lambda: number,
+  dt: number,
+) {
+  v.lerp(dest, 1 - Math.exp(-lambda * dt));
+}
+
+/**
+ * When the visitor leaves the plot alone for a moment, the camera goes on a
+ * tour: it glides to frame each cluster in the centre of the screen, drifts
+ * slowly around it while it lingers, then eases on to the next. Any drag,
+ * zoom or tap hands control straight back; the tour resumes after idling.
+ */
+function CameraTour({
+  stops,
+  paused,
+}: {
+  stops: [number, number, number][];
+  paused: boolean;
+}) {
+  const camera = useThree((s) => s.camera);
+  const gl = useThree((s) => s.gl);
+  const controls = useThree((s) => s.controls) as unknown as {
+    target: THREE.Vector3;
+    update: () => void;
+    addEventListener: (type: string, cb: () => void) => void;
+    removeEventListener: (type: string, cb: () => void) => void;
+  } | null;
+  const tour = useRef({
+    lastUser: 0,
+    active: false,
+    idx: 0,
+    phase: "approach" as "approach" | "dwell",
+    dwellStart: 0,
+    center: new THREE.Vector3(),
+    dest: new THREE.Vector3(),
+  });
+
+  // Any drag, zoom or tap resets the idle clock and hands control back.
+  useEffect(() => {
+    const bump = () => {
+      tour.current.lastUser = Date.now();
+      tour.current.active = false;
+    };
+    const el = gl.domElement;
+    el.addEventListener("pointerdown", bump);
+    controls?.addEventListener("start", bump);
+    controls?.addEventListener("end", bump);
+    return () => {
+      el.removeEventListener("pointerdown", bump);
+      controls?.removeEventListener("start", bump);
+      controls?.removeEventListener("end", bump);
+    };
+  }, [gl, controls]);
+
+  useFrame((_, delta) => {
+    const t = tour.current;
+    if (!controls || stops.length === 0) return;
+    const now = Date.now();
+    // The clock starts on the first rendered frame, not at module load.
+    if (t.lastUser === 0) t.lastUser = now;
+    if (paused) {
+      // The visitor is reading a voice: hold still, restart the idle clock.
+      t.lastUser = now;
+      t.active = false;
+      return;
+    }
+    if (now - t.lastUser < TOUR_IDLE_MS) {
+      t.active = false;
+      return;
+    }
+
+    const beginStep = (idx: number) => {
+      t.idx = idx;
+      t.center.set(...stops[idx]);
+      // Approach from wherever the camera already is, kept slightly above,
+      // so the move is a smooth swing rather than a cut.
+      const dir = camera.position.clone().sub(t.center);
+      if (dir.lengthSq() < 1e-4) dir.set(0.4, 0.4, 1);
+      dir.normalize();
+      dir.y = Math.max(dir.y, 0.25);
+      dir.normalize();
+      t.dest.copy(t.center).addScaledVector(dir, TOUR_DISTANCE);
+      t.phase = "approach";
+    };
+
+    if (!t.active) {
+      t.active = true;
+      beginStep(t.idx);
+    }
+
+    const dt = Math.min(delta, 0.1);
+    dampToward(camera.position, t.dest, 2.1, dt);
+    dampToward(controls.target, t.center, 2.6, dt);
+    controls.update();
+
+    if (t.phase === "approach") {
+      if (
+        camera.position.distanceTo(t.dest) < 0.3 &&
+        controls.target.distanceTo(t.center) < 0.2
+      ) {
+        t.phase = "dwell";
+        t.dwellStart = now;
+      }
+    } else {
+      // Linger with a slow drift around the cluster before moving on.
+      t.dest.sub(t.center).applyAxisAngle(WORLD_UP, 0.16 * dt).add(t.center);
+      if (now - t.dwellStart > TOUR_DWELL_MS) {
+        beginStep((t.idx + 1) % stops.length);
+      }
+    }
+  });
+
+  return null;
+}
+
 /* ---------------- the view ---------------- */
 
 export default function SpaceView({
@@ -581,8 +711,6 @@ export default function SpaceView({
   const layout = useMemo(() => buildLayout(landscape, myIds), [landscape, myIds]);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [pinnedId, setPinnedId] = useState<string | null>(focusPovId);
-  // The plot drifts gently until the visitor takes the wheel.
-  const [engaged, setEngaged] = useState(false);
   const shownId = hoveredId ?? pinnedId;
 
   // A hovered or pinned voice resolves to its summary and the topic it belongs
@@ -613,7 +741,6 @@ export default function SpaceView({
           dpr={[1, 2]}
           camera={{ position: [15, 10, 16], fov: 50 }}
           gl={{ antialias: true }}
-          onPointerDown={() => setEngaged(true)}
           onPointerMissed={() => setPinnedId(null)}
         >
           <DriveFrames />
@@ -738,11 +865,14 @@ export default function SpaceView({
             );
           })}
 
+          <CameraTour
+            stops={layout.topics.map((t) => t.center)}
+            paused={shownId !== null}
+          />
           <OrbitControls
+            makeDefault
             enableDamping
             dampingFactor={0.08}
-            autoRotate={!engaged && shownId === null}
-            autoRotateSpeed={0.3}
             minDistance={8}
             maxDistance={70}
             enablePan={false}
