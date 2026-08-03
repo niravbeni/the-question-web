@@ -383,18 +383,35 @@ const RETICLE_ROTATIONS: [number, number, number][] = (
 function Reticle() {
   const len = 0.85;
   const thick = 0.07;
+  // A slightly padded navy back-face shell behind each bar draws a thin
+  // outline around the neon shape, so it stays visible on light walls.
+  const outline = 0.03;
   return (
     <group>
       {RETICLE_ROTATIONS.map((rot, i) => (
-        <mesh key={i} rotation={rot} renderOrder={10}>
-          <boxGeometry args={[len, thick, thick]} />
-          <meshBasicMaterial
-            color={RETICLE_COLOR}
-            transparent
-            opacity={0.95}
-            depthTest={false}
-          />
-        </mesh>
+        <group key={i} rotation={rot}>
+          <mesh renderOrder={9}>
+            <boxGeometry
+              args={[len + outline * 2, thick + outline * 2, thick + outline * 2]}
+            />
+            <meshBasicMaterial
+              color="#232a3a"
+              side={THREE.BackSide}
+              transparent
+              opacity={0.95}
+              depthTest={false}
+            />
+          </mesh>
+          <mesh renderOrder={10}>
+            <boxGeometry args={[len, thick, thick]} />
+            <meshBasicMaterial
+              color={RETICLE_COLOR}
+              transparent
+              opacity={0.95}
+              depthTest={false}
+            />
+          </mesh>
+        </group>
       ))}
     </group>
   );
