@@ -383,16 +383,16 @@ const RETICLE_ROTATIONS: [number, number, number][] = (
 function Reticle() {
   const len = 0.85;
   const thick = 0.07;
-  // A slightly padded navy back-face shell behind each bar draws a thin
-  // outline around the neon shape, so it stays visible on light walls.
-  const outline = 0.03;
+  // Outline via inverted hull: a slightly larger navy copy of each bar drawn
+  // back-faced beneath the neon one reads as a thin outline from any angle.
+  const outline = 0.06;
   return (
     <group>
       {RETICLE_ROTATIONS.map((rot, i) => (
         <group key={i} rotation={rot}>
           <mesh renderOrder={9}>
             <boxGeometry
-              args={[len + outline * 2, thick + outline * 2, thick + outline * 2]}
+              args={[len + outline, thick + outline, thick + outline]}
             />
             <meshBasicMaterial
               color="#232a3a"
