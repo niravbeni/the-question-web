@@ -380,7 +380,10 @@ const SPOKE_QUATS: THREE.Quaternion[] = SPOKE_DIRS.map((d) =>
 function Reticle() {
   const tip = 0.46; // how far spokes reach from the centre
   const hub = 0.1; // radius of the centre sphere
-  const start = 0.08; // spokes begin just inside the hub surface
+  // Spokes start clear of the hub's outline shell, so the middle reads as
+  // its own outlined piece and every spoke keeps its rim down to the base
+  // instead of merging into one neon mass.
+  const start = 0.16;
   const spokeR = 0.032;
   const edge = 0.018; // outline thickness
   const len = tip - start;
