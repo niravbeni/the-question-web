@@ -24,7 +24,9 @@ interface PublishBody {
 }
 
 export async function POST(req: Request) {
-  const limit = rateLimit(clientKey(req, "pov-publish"), 5, 10 * 60_000);
+  // Per-IP; a workshop room on shared Wi-Fi reads as one IP, so leave room
+  // for a whole group publishing in the same window.
+  const limit = rateLimit(clientKey(req, "pov-publish"), 30, 10 * 60_000);
   if (!limit.ok) {
     return NextResponse.json(
       { error: "You have published several views recently. Please wait a moment." },
