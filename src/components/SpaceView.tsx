@@ -390,23 +390,20 @@ function Reticle() {
     <group>
       {RETICLE_ROTATIONS.map((rot, i) => (
         <group key={i} rotation={rot}>
-          <mesh geometry={RETICLE_BAR_GEOMETRY} renderOrder={10}>
+          {/* Depth-tested faces hide everything behind them, so only the
+              visible outline of the shape is drawn, never its internals.
+              The polygon offset pushes faces back a hair so the coplanar
+              edge lines pass the depth test without flicker. */}
+          <mesh geometry={RETICLE_BAR_GEOMETRY}>
             <meshBasicMaterial
               color={RETICLE_COLOR}
-              transparent
-              opacity={0.95}
-              depthTest={false}
+              polygonOffset
+              polygonOffsetFactor={1}
+              polygonOffsetUnits={1}
             />
           </mesh>
-          {/* Tracing every edge (ends and lengthwise) keeps the shape's
-              internal detail readable, not just its silhouette. */}
-          <lineSegments geometry={RETICLE_EDGE_GEOMETRY} renderOrder={11}>
-            <lineBasicMaterial
-              color="#232a3a"
-              transparent
-              opacity={0.9}
-              depthTest={false}
-            />
+          <lineSegments geometry={RETICLE_EDGE_GEOMETRY}>
+            <lineBasicMaterial color="#232a3a" transparent opacity={0.9} />
           </lineSegments>
         </group>
       ))}
