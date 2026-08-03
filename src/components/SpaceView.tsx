@@ -382,31 +382,32 @@ const RETICLE_ROTATIONS: [number, number, number][] = (
  */
 function Reticle() {
   const len = 0.85;
-  const thick = 0.07;
+  const thick = 0.045;
   // Half-thickness of the dark outline drawn around each bar.
-  const edge = 0.035;
+  const edge = 0.022;
   return (
     <group>
-      {/* Outline pass: slightly larger navy bars behind the neon ones, so a
-          thin dark border traces the asterisk's silhouette from any angle. */}
+      {/* Each bar draws its navy outline then its neon fill, in its own
+          render-order slot, so later bars outline themselves over earlier
+          ones and the crossing at the centre stays legible. */}
       {RETICLE_ROTATIONS.map((rot, i) => (
-        <mesh key={`outline-${i}`} rotation={rot} renderOrder={9}>
-          <boxGeometry
-            args={[len + edge * 2, thick + edge * 2, thick + edge * 2]}
-          />
-          <meshBasicMaterial color="#232a3a" transparent opacity={0.95} depthTest={false} />
-        </mesh>
-      ))}
-      {RETICLE_ROTATIONS.map((rot, i) => (
-        <mesh key={i} rotation={rot} renderOrder={10}>
-          <boxGeometry args={[len, thick, thick]} />
-          <meshBasicMaterial
-            color={RETICLE_COLOR}
-            transparent
-            opacity={0.95}
-            depthTest={false}
-          />
-        </mesh>
+        <group key={i} rotation={rot}>
+          <mesh renderOrder={9 + i * 0.1}>
+            <boxGeometry
+              args={[len + edge * 2, thick + edge * 2, thick + edge * 2]}
+            />
+            <meshBasicMaterial color="#232a3a" transparent opacity={0.95} depthTest={false} />
+          </mesh>
+          <mesh renderOrder={9.05 + i * 0.1}>
+            <boxGeometry args={[len, thick, thick]} />
+            <meshBasicMaterial
+              color={RETICLE_COLOR}
+              transparent
+              opacity={0.95}
+              depthTest={false}
+            />
+          </mesh>
+        </group>
       ))}
     </group>
   );
