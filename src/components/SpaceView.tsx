@@ -355,66 +355,52 @@ const RETICLE_COLOR = "#d4f24a";
 const RETICLE_EDGE_COLOR = "#232a3a";
 
 /**
- * Fourteen spoke directions — the six axes plus the eight cube diagonals —
- * spread evenly like a sphere so the centre reads as a 3D asterisk from any
- * angle. Each quaternion turns a +y-aligned cylinder down its direction.
+ * Bar directions for the asterisk: the flat six-ray glyph spun around its
+ * vertical axis. One vertical bar, then bars tilted 60 degrees from vertical
+ * at evenly spaced azimuths. Every bar passes through the centre, exactly
+ * like the flat asterisk's strokes. Each quaternion turns a +x-aligned bar
+ * down its direction.
  */
-const SPOKE_DIRS: THREE.Vector3[] = (
-  [
-    [1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1],
-    [1, 1, 1], [1, 1, -1], [1, -1, 1], [1, -1, -1],
-    [-1, 1, 1], [-1, 1, -1], [-1, -1, 1], [-1, -1, -1],
-  ] as const
-).map((d) => new THREE.Vector3(d[0], d[1], d[2]).normalize());
-
-const SPOKE_QUATS: THREE.Quaternion[] = SPOKE_DIRS.map((d) =>
-  new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d),
+const RETICLE_BAR_QUATS: THREE.Quaternion[] = [
+  new THREE.Vector3(0, 1, 0),
+  ...[0, 45, 90, 135].map((deg) => {
+    const az = (deg * Math.PI) / 180;
+    const tilt = Math.PI / 3;
+    return new THREE.Vector3(
+      Math.sin(tilt) * Math.cos(az),
+      Math.cos(tilt),
+      Math.sin(tilt) * Math.sin(az),
+    );
+  }),
+].map((d) =>
+  new THREE.Quaternion().setFromUnitVectors(
+    new THREE.Vector3(1, 0, 0),
+    d.normalize(),
+  ),
 );
 
 /**
- * A cluster's centre: a small neon 3D asterisk, built as a hub sphere plus
- * fourteen outward spokes. Everything is depth-tested so the parts occlude
- * each other correctly, and each piece carries a back-side navy shell that
- * shows as a thin outline around its silhouette.
+ * A cluster's centre: a neon 3D asterisk. Solid bars cross through the
+ * middle like the flat glyph, depth-tested so they occlude correctly, and
+ * each bar carries a back-side navy shell that shows as a thin outline
+ * around the shape's silhouette.
  */
 function Reticle() {
-  const tip = 0.46; // how far spokes reach from the centre
-  const hub = 0.1; // radius of the centre sphere
-  // Spokes start clear of the hub's outline shell, so the middle reads as
-  // its own outlined piece and every spoke keeps its rim down to the base
-  // instead of merging into one neon mass.
-  const start = 0.16;
-  const spokeR = 0.032;
+  const len = 0.92; // full bar length, passing through the centre
+  const thick = 0.055;
   const edge = 0.018; // outline thickness
-  const len = tip - start;
-  const mid = start + len / 2;
-
   return (
     <group>
-      {/* The middle: a visible hub with its own outline. */}
-      <mesh>
-        <sphereGeometry args={[hub + edge, 20, 20]} />
-        <meshBasicMaterial color={RETICLE_EDGE_COLOR} side={THREE.BackSide} />
-      </mesh>
-      <mesh>
-        <sphereGeometry args={[hub, 20, 20]} />
-        <meshBasicMaterial color={RETICLE_COLOR} />
-      </mesh>
-
-      {SPOKE_DIRS.map((d, i) => (
-        <group
-          key={i}
-          position={[d.x * mid, d.y * mid, d.z * mid]}
-          quaternion={SPOKE_QUATS[i]}
-        >
+      {RETICLE_BAR_QUATS.map((q, i) => (
+        <group key={i} quaternion={q}>
           <mesh>
-            <cylinderGeometry
-              args={[spokeR + edge, spokeR + edge, len + edge * 2, 10]}
+            <boxGeometry
+              args={[len + edge * 2, thick + edge * 2, thick + edge * 2]}
             />
             <meshBasicMaterial color={RETICLE_EDGE_COLOR} side={THREE.BackSide} />
           </mesh>
           <mesh>
-            <cylinderGeometry args={[spokeR, spokeR, len, 10]} />
+            <boxGeometry args={[len, thick, thick]} />
             <meshBasicMaterial color={RETICLE_COLOR} />
           </mesh>
         </group>
