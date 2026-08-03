@@ -380,32 +380,33 @@ const RETICLE_ROTATIONS: [number, number, number][] = (
  * "centre here" marker from any angle, without being mistaken for one of the
  * coloured voice dots.
  */
-/** One bar of the asterisk, shared by every reticle instance. */
-const RETICLE_BAR_GEOMETRY = new THREE.BoxGeometry(0.85, 0.07, 0.07);
-/** The bar's actual edges, drawn as thin navy lines over the neon faces. */
-const RETICLE_EDGE_GEOMETRY = new THREE.EdgesGeometry(RETICLE_BAR_GEOMETRY);
-
 function Reticle() {
+  const len = 0.85;
+  const thick = 0.07;
+  // Half-thickness of the dark outline drawn around each bar.
+  const edge = 0.035;
   return (
     <group>
+      {/* Outline pass: slightly larger navy bars behind the neon ones, so a
+          thin dark border traces the asterisk's silhouette from any angle. */}
       {RETICLE_ROTATIONS.map((rot, i) => (
-        <group key={i} rotation={rot}>
-          {/* Depth-tested faces hide everything behind them, so only the
-              visible outline of the shape is drawn, never its internals.
-              The polygon offset pushes faces back a hair so the coplanar
-              edge lines pass the depth test without flicker. */}
-          <mesh geometry={RETICLE_BAR_GEOMETRY}>
-            <meshBasicMaterial
-              color={RETICLE_COLOR}
-              polygonOffset
-              polygonOffsetFactor={1}
-              polygonOffsetUnits={1}
-            />
-          </mesh>
-          <lineSegments geometry={RETICLE_EDGE_GEOMETRY}>
-            <lineBasicMaterial color="#232a3a" transparent opacity={0.9} />
-          </lineSegments>
-        </group>
+        <mesh key={`outline-${i}`} rotation={rot} renderOrder={9}>
+          <boxGeometry
+            args={[len + edge * 2, thick + edge * 2, thick + edge * 2]}
+          />
+          <meshBasicMaterial color="#232a3a" transparent opacity={0.95} depthTest={false} />
+        </mesh>
+      ))}
+      {RETICLE_ROTATIONS.map((rot, i) => (
+        <mesh key={i} rotation={rot} renderOrder={10}>
+          <boxGeometry args={[len, thick, thick]} />
+          <meshBasicMaterial
+            color={RETICLE_COLOR}
+            transparent
+            opacity={0.95}
+            depthTest={false}
+          />
+        </mesh>
       ))}
     </group>
   );
