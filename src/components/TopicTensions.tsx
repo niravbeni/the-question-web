@@ -180,7 +180,7 @@ function TensionBlock({
       {/* The line: quietly shaded where the voices gather */}
       <div className="relative mt-3 h-16">
         <div
-          className="absolute inset-x-0 top-5 h-1.5 -translate-y-1/2 rounded-full bg-line/50"
+          className="absolute inset-x-0 top-5 h-1.5 -translate-y-1/2 rounded-full border border-black/25 bg-line/50"
           style={{ backgroundImage: heatGradient(heat) }}
         />
 
